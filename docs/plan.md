@@ -1,7 +1,18 @@
 # Implementation plan
 
-Status: proposed, not started
+Status: M1 scaffold implemented; M2 next
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
+
+## Current progress
+
+- M0 design and research: complete.
+- M0.5 interface, crypto, packaging, proxy, and TLS validation: complete.
+- M1 scaffold, paths, config, permissions, `auth list`, `version`, and basic
+  `doctor`: complete.
+- M2 key loading, JWT signing, API client, and token cache: next.
+- `auth login`, `auth status`, `auth token`, `auth refresh`, `auth logout`,
+  `auth setup-git`, `setup`, real `gh` passthrough, and the real git helper are
+  still stubs.
 
 ## Goal
 
@@ -27,7 +38,7 @@ aarch64.
 - Documentation covers app creation, permissions, install, migration, security,
   and known limitations.
 
-## Phase 1: repository scaffold
+## M1: repository scaffold (completed)
 
 Tasks:
 
@@ -35,9 +46,11 @@ Tasks:
 - Add `src/main.rs` with argv[0] dispatch for `gh`, `gh-app`,
   `git-credential-gh-app`.
 - Add `src/cli.rs` with clap subcommands and hidden aliases.
-- Add `src/error.rs` with domain errors and a redaction helper.
+- Add `src/error.rs` with domain errors. Secret redaction is deferred until
+  tokens and keys are read.
 - Add `src/paths.rs` for config and cache directories.
-- Add `src/term.rs` for TTY detection, prompts, and color.
+- Add `src/term.rs` for TTY detection, prompts, and color. Deferred until a
+  prompt-driven command lands.
 - Add `.github/workflows/ci.yml` with fmt, clippy, test.
 - Add `README.md` skeleton and license header check.
 
@@ -45,7 +58,16 @@ Acceptance:
 
 - `cargo run -- --version` works.
 - `cargo test` and `cargo clippy -- -D warnings` pass.
-- Path tests cover Linux XDG, `GH_APP_CONFIG_DIR`, and Windows fallback.
+- Path tests cover Linux XDG and `GH_APP_CONFIG_DIR`. Windows platform
+  fallbacks are compiled conditionally but were not executed in this
+  environment.
+
+Result:
+
+- `cargo test`: 21 unit tests and 8 CLI tests pass.
+- `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check` pass.
+- Static x86_64 musl binary is 1.1 MiB and runs.
+- Static aarch64 musl binary is 877 KiB and runs under qemu-aarch64.
 
 ## M0.5: design validation (completed)
 
@@ -79,13 +101,13 @@ Acceptance: evidence recorded in `docs/validation.md`, including the limitation
 that real installation-token checks and CI builds of the actual source remain
 release gates.
 
-## M1.5: config and permissions
+## M1.5: config and permissions (completed)
 
 - `Config` schema with `version`, `settings`, `hosts`, and key source enum.
 - TOML load and atomic save.
 - Directory and file permission checks.
 - Key source validation: exactly one of file, keyring, env, command.
-- `gh-app auth list` and an empty `gh-app auth status`.
+- `gh-app auth list` is implemented. `gh-app auth status` remains in M3.
 
 Acceptance:
 
@@ -93,6 +115,9 @@ Acceptance:
 - 0644 key file is refused with a useful error.
 - Symlinked key is refused by default.
 - Config version mismatch fails cleanly.
+
+Result: all acceptance checks are covered by unit tests, including unknown-field
+preservation and key permission rejection.
 
 ## M2: key, JWT, API, cache
 

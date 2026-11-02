@@ -90,8 +90,8 @@ Data flow:
   that host, sets the correct gh environment variable, and `exec`s the real gh.
 - Git invokes the credential helper, which returns `x-access-token` plus the
   installation token. The token is marked ephemeral when git supports it.
-- The private key is only read on a cache miss or refresh, at most about once
-  per hour per host.
+- When caching is enabled, the private key is only read on a cache miss or
+  refresh, at most about once per hour per host.
 
 ## 4. Command surface
 
@@ -452,10 +452,11 @@ Headless Linux usually has no Secret Service, so file storage remains the
 fallback. If the keyring is unavailable, `--keyring` fails with a clear message
 instead of silently falling back to a file.
 
-The `keyring` 4.2 dependency compiled into a static x86_64 musl binary (4.6 MiB
-total). On a headless host, `Entry::new` returned `NoDefaultStore`, as expected.
-The binary size and runtime behavior confirm that keyring support should remain
-optional and that file storage must be the default.
+A probe using `keyring` 4.2 compiled into a static x86_64 musl binary of 4.6 MiB.
+This is the probe size, not an estimate for the final gh-app binary. On a
+headless host, `Entry::new` returned `NoDefaultStore`, as expected. The runtime
+behavior confirms that keyring support should remain optional and that file
+storage must be the default.
 
 For CI and ephemeral environments: `GH_APP_PRIVATE_KEY` or `--private-key -`
 keeps the key out of the config directory and out of argv. The key still exists
@@ -699,7 +700,9 @@ Expected to work, subject to app permissions:
 - pull requests, issues, releases, actions, checks, statuses
 - `gh api` for endpoints that accept installation tokens
 - gh extensions that use the injected environment token
-- `gh auth status` and `gh auth token`, showing the app bot
+- `gh auth status` and `gh auth token`, expected to show the app bot. This
+  specific display is not verified because no real installation token was
+  available.
 
 Known limitations:
 

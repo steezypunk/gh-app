@@ -8,10 +8,10 @@ on the date above.
 
 ## 1. gh can be shadowed, but absolute paths bypass the shim
 
-gh looks up its own state in `~/.config/gh` (`hosts.yml` is mode 0600). It does
-not care what executable name it was started from. A symlink named `gh` that
-points at `gh-app` is therefore a practical way to shadow it for normal PATH
-lookups.
+On Unix, gh looks up its own state in `~/.config/gh` (`hosts.yml` is mode 0600).
+It does not care what executable name it was started from. A symlink named `gh`
+that points at `gh-app` is therefore a practical way to shadow it for normal
+PATH lookups.
 
 The important exception found during testing:
 
@@ -203,8 +203,9 @@ The full evidence is in `docs/validation.md`. The most important results:
   the planned `fs4` dependency.
 - A static 417 KiB multi-call prototype dispatched correctly through symlinks
   named `gh`, `gh-app`, and `git-credential-gh-app`.
-- The optional `keyring` 4.2 feature compiled static (4.6 MiB) but reported no
-  default store on the headless host, confirming file fallback is required.
+- A probe using the optional `keyring` 4.2 feature compiled static at 4.6 MiB
+  but reported no default store on the headless host, confirming file fallback
+  is required.
 - `ureq` honored proxy environment variables and tunneled through CONNECT.
 - A custom CA root was accepted while the same local certificate failed against
   the bundled webpki roots, validating the enterprise CA path.

@@ -376,10 +376,12 @@ returned HTTP 401:
 {"message":"A JSON web token could not be decoded","documentation_url":"https://docs.github.com/rest","status":"401"}
 ```
 
-This is expected because app ID 123456 has no public key on GitHub. It confirms
-the endpoint path, TLS, Bearer transport, API version header, and GitHub's error
-shape, but it does not prove that a real app's JWT is accepted. That check needs
-a real app ID and private key and remains blocked.
+This is consistent with app ID 123456 having no public key on GitHub. Without a
+real app it cannot be distinguished from another JWT rejection, although the
+local signature verified with OpenSSL. The call confirms the endpoint path, TLS,
+Bearer transport, API version header, and GitHub's error shape, but it does not
+prove that a real app's JWT is accepted. That check needs a real app ID and
+private key and remains blocked.
 
 ## 9.6 Optional keyring feature
 
@@ -449,8 +451,8 @@ runtime environment.
 - `GH_TOKEN` and `GH_ENTERPRISE_TOKEN` selection matches the design, including
   the GHES and `*.ghe.com` split.
 - `ephemeral=1` is effective against `git-credential-cache` in a real HTTP flow.
-- Static musl builds work for x86_64 and aarch64 in a scratch toolchain; CI must
-  still build and smoke-test the actual gh-app source.
+- The M1 gh-app source itself builds as static x86_64 and aarch64 binaries and
+  runs on both architectures. CI still owns release packaging and smoke tests.
 - The static aarch64 JWT-plus-HTTP probe also ran under qemu-aarch64 against the
   mock endpoint.
 
@@ -480,10 +482,32 @@ runtime environment.
 | Static x86_64 binary | static-pie built and executed | verified |
 | Static aarch64 binary | static ELF built and run under qemu | verified |
 | Static mint probe | x86_64 and aarch64 ran against mock | verified |
-| Key permission checks | x86_64 and aarch64 static prototype | verified |
+| Key permission checks | x86_64 and aarch64 static prototype plus M1 code | verified |
 | Token cache locking | eight-process static prototype | verified |
 | Optional keyring feature | static build succeeds, headless store unavailable | verified |
 | HTTP proxy support | local CONNECT proxy test | verified |
 | Custom CA bundle | local CA accepted, default roots rejected | verified |
-| Key storage and permission model | design only | not implemented |
+| M1 config and paths | 21 unit tests plus 8 CLI tests | verified |
+| M1 static binaries | 1.1 MiB x86_64, 877 KiB aarch64, both executed | verified |
+| Key storage and permission model | permission checks implemented; keyring deferred | partial |
 | gh-app auth login UX | design only | not implemented |
+
+## 13. M1 scaffold validation
+
+The first implementation milestone was built and exercised:
+
+- `cargo test`: 21 unit tests and 8 CLI integration tests pass.
+- `cargo clippy --all-targets -- -D warnings` passes.
+- `cargo fmt --check` passes.
+- The real `gh-app` source built as a static-pie x86_64 musl binary, 1.1 MiB,
+  and ran `version`, `auth list`, and `doctor`.
+- The real `gh-app` source built as a static aarch64 musl binary, 877 KiB, and
+  ran `version` under qemu-aarch64.
+- Config round-trip preserved unknown top-level, settings, and host fields.
+- A 0600 key was accepted; 0644, symlink, and world-writable parent cases were
+  rejected.
+- `auth list` rendered a configured host, `doctor` validated the key, and the
+  not-yet-implemented commands failed with explicit messages.
+
+This validates the scaffold, config boundary, and packaging, not the GitHub App
+authentication flow.
