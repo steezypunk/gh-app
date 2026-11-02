@@ -180,6 +180,7 @@ The full evidence is in `docs/validation.md`. The most important results:
   authtype form unconditionally lost the password. The helper must branch.
 - `git credential approve` calls the helper as `store`, and `reject` calls it
   as `erase`, both with credential fields on stdin.
+- A blank host-level helper value severed a global helper chain in real git.
 - `ephemeral=1` prevented `git-credential-cache` from serving the credential on
   a second real HTTP run. Without it, the cache served the credential.
 - `GH_TOKEN` takes precedence over `GITHUB_TOKEN`, is not used for GHES, and is
@@ -195,6 +196,11 @@ The full evidence is in `docs/validation.md`. The most important results:
 - The real GitHub token endpoint returned 401 `A JSON web token could not be
   decoded` for a fake app ID, which is expected because no public key exists for
   that app. Real app acceptance remains blocked.
+- A static key-check prototype rejected 0644, symlinks, and world-writable
+  parents on both x86_64 and aarch64.
+- A static token-cache prototype ran eight concurrent processes without lost
+  updates and produced 0600 cache and lock files. Standard `File::lock` replaced
+  the planned `fs4` dependency.
 
 ## 12. Sources
 

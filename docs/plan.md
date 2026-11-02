@@ -57,6 +57,11 @@ Acceptance:
 - Real git HTTP 401 test for `capability[]=authtype`.
 - Real git HTTP cache test with and without `ephemeral=1`.
 - Real git approve/reject test for store/erase.
+- Blank reset versus global helper chain test.
+- Key permission prototype: 0600 accepted, 0644, symlink, and world-writable
+  parent rejected on x86_64 and aarch64.
+- Token cache concurrency: eight processes, all updates retained, cache and lock
+  files mode 0600.
 - RS256 JWT verified for 2048/4096 PKCS#1, 2048 PKCS#8, and 1024 rejection.
 - Mock installation-token endpoint test with ureq.
 - Real GitHub token endpoint error shape with a fake app.

@@ -414,6 +414,10 @@ Behavior:
   requests, but avoids a bearer token on disk.
 - Logout deletes the cache entry for the host.
 
+The lock plus atomic-write path was validated with eight concurrent processes:
+the final counter was 8 and both the cache and lock files were mode 0600. Rust
+1.99's standard `File::lock` was sufficient, so `fs4` is not needed.
+
 The cache contains a bearer token, not the private key. A stolen cache file
 grants access only until the token expires, at most one hour. It is still mode
 0600.
@@ -652,6 +656,10 @@ honored through ureq's proxy support.
 - `umask(077)` is set at startup on Unix.
 - Core dumps are disabled where practical while key material is in memory.
 
+The key-file boundary was validated with a static prototype on x86_64 and
+aarch64: mode 0600 was accepted, 0644 was rejected, a symlink was rejected with
+`ELOOP`, and a world-writable parent directory was rejected.
+
 ### 10.3 Residual risks
 
 - Malware running as the same user can read the key file or ptrace the process.
@@ -735,7 +743,7 @@ preserves gh's exit code.
 - `base64`, `sha2`, `time`
 - `thiserror`
 - `dirs` or `directories` for platform paths
-- `tempfile`, `fs4` for atomic writes and file locks
+- `tempfile` for atomic writes; `std::fs::File::lock` for cache locking
 - `secrecy`, `zeroize`
 - `keyring` 4, optional feature, for OS keyring storage
 - `rustix` or `libc` for Unix permission, umask, and `O_NOFOLLOW`

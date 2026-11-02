@@ -101,6 +101,16 @@ This directly confirms the design decision that `gh-app auth setup-git` must
 rewrite the helper to an absolute gh-app path. A PATH shim alone does not affect
 git.
 
+The blank reset was also tested with a global marker helper:
+
+- Host value set to `""` only: the global helper was not called, and git failed
+  with no credential.
+- Host value set to `""` followed by the real gh helper: the global helper was
+  not called, and gh returned `x-access-token` and the fake token.
+
+This confirms that the reset value severs an inherited helper chain before the
+gh-app helper is added.
+
 ## 4. Real git HTTP credential path
 
 A local HTTP server returned `401` with `WWW-Authenticate: Basic` for every
@@ -180,6 +190,47 @@ credential with `ephemeral` set.
 Git's credential core also checks `password_expiry_utc`. An expired credential
 is discarded on read, and `git credential approve` refuses to store it. This
 supports emitting `password_expiry_utc` for older git clients.
+
+## 6.2 Key permission checks
+
+A static Rust prototype implemented the planned key open path with `O_NOFOLLOW`
+and owner/mode checks. It was built for x86_64 musl and run, and for aarch64
+musl and run under qemu-aarch64.
+
+| case | result |
+|---|---|
+| regular key, mode 0600, owner-owned directory | `ok: mode=600` |
+| regular key, mode 0644 | rejected, group/other accessible |
+| symlink to a valid key | rejected, `ELOOP` |
+| key in a world-writable parent directory | rejected |
+
+The same 0600 and 0644 results were observed on aarch64 under qemu. This
+validates the key storage boundary, not only the design text.
+
+## 6.3 Token cache concurrency
+
+A static x86_64 prototype ran eight concurrent processes. Each process took an
+exclusive lock, read the cached count, slept, wrote a new count atomically, and
+released the lock.
+
+Result:
+
+```text
+count=8 mode=600 lock_mode=600
+```
+
+No updates were lost, and both the cache file and lock file were mode 0600.
+This validates the planned lock plus temp-file-and-rename cache write.
+
+Rust 1.99's standard `File::lock` was sufficient. `fs4` is not needed, which
+removes a dependency and simplifies the static build. The lock API requires a
+recent Rust, so the project MSRV must be at least the version that stabilized
+`File::lock`.
+
+The same multi-process test under qemu-aarch64 failed with `Exec format error`
+because the emulator cannot re-exec the aarch64 binary without binfmt
+registration. That is a qemu limitation, not a code failure. The single-process
+aarch64 key check and JWT/HTTP probes ran successfully.
 
 ## 7. Real gh auth command behavior
 
@@ -356,6 +407,7 @@ runtime environment.
 | Preserve gh exit codes | unknown command and version tests | verified |
 | Git uses gh helper with env token | real git fill test | verified |
 | Absolute helper path needed | marker test both ways | verified |
+| Blank reset severs helper chain | global marker helper test | verified |
 | Authtype credential output | real git HTTP 401 test | verified |
 | Legacy credential output | real git fill test | verified |
 | store/erase no-op | real git approve/reject test | verified |
@@ -371,5 +423,7 @@ runtime environment.
 | Static x86_64 binary | static-pie built and executed | verified |
 | Static aarch64 binary | static ELF built and run under qemu | verified |
 | Static mint probe | x86_64 and aarch64 ran against mock | verified |
+| Key permission checks | x86_64 and aarch64 static prototype | verified |
+| Token cache locking | eight-process static prototype | verified |
 | Key storage and permission model | design only | not implemented |
 | gh-app auth login UX | design only | not implemented |
