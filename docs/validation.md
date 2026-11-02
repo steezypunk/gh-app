@@ -552,7 +552,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 41 unit tests and 14 CLI integration tests pass.
+- `cargo test`: 42 unit tests and 14 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - Static `--version` bypasses token minting.
@@ -561,6 +561,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 - A capability request returns `authtype=Basic`, a base64 credential, and
   `ephemeral=1`.
 - `auth setup-git` writes the blank reset and an absolute helper command.
+- Helper paths are single-quoted, including spaces, quotes, `$`, and `#`.
 - `setup` creates the `gh` symlink and checks PATH ordering.
 - A local mock returns 429 with `Retry-After: 0`, then 201; the client retries
   and succeeds.

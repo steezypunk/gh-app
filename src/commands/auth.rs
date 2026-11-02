@@ -765,11 +765,7 @@ fn run_git(args: &[&str]) -> Result<()> {
 }
 
 fn shell_quote(value: &str) -> String {
-    if value.contains([' ', '\'', '\\']) {
-        format!("'{}'", value.replace('\'', "'\\''"))
-    } else {
-        value.to_string()
-    }
+    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 fn prompt(label: &str, default: Option<&str>) -> Result<String> {
@@ -826,4 +822,19 @@ fn select_installation(installations: &[Installation]) -> Result<u64> {
         .get(index.saturating_sub(1))
         .map(|installation| installation.id)
         .ok_or_else(|| Error::message("installation selection is out of range"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quotes_helper_paths_for_the_shell() {
+        assert_eq!(shell_quote("/usr/bin/gh-app"), "'/usr/bin/gh-app'");
+        assert_eq!(
+            shell_quote("/opt/it's here/gh-app"),
+            "'/opt/it'\\''s here/gh-app'"
+        );
+        assert_eq!(shell_quote("/opt/$weird#path"), "'/opt/$weird#path'");
+    }
 }
