@@ -587,6 +587,11 @@ The gist host is not configured by default. GitHub Apps cannot access gists, so
 configuring `gist.github.com` would only produce failures. If an old gh gist
 helper remains, it is left alone, and doctor reports it.
 
+gh itself configures a gist helper for `*.ghe.com` hosts, while gh-app
+intentionally does not. This is a deliberate compatibility difference, because
+installation tokens cannot access gists. For GHES, gh does not configure a gist
+helper either, so the behavior matches.
+
 On logout, the two helper entries for the host are removed unless
 `--keep-git-config` is used.
 
@@ -804,6 +809,11 @@ Cross compilation uses `cross` (Docker images with the right C toolchain for
 its assembly, so pure `cargo build --target` is not enough on a stock x86_64
 host.
 
+A scratch validation built the dependency probe as a static-pie x86_64 binary
+with a locally extracted musl GCC and executed it, and as a static aarch64
+binary with the musl.cc cross GCC. The aarch64 binary was not executed because
+QEMU is unavailable. CI still owns the release build and smoke test.
+
 CI:
 
 - `cargo fmt --check`
@@ -879,7 +889,9 @@ Optional real-API test, gated by `GH_APP_E2E=1` and real credentials:
 
 Acceptance: storage, crypto, host behavior, and compatibility decisions agreed,
 and the real-interface evidence in `docs/validation.md` recorded. Real
-installation-token and static cross-build checks remain release gates.
+installation-token checks and CI builds of the actual source remain release
+gates. Static x86_64 was built and executed in a scratch toolchain; static
+aarch64 was built but not executed because QEMU is unavailable.
 
 ### M1: scaffold and config
 

@@ -169,6 +169,8 @@ The full evidence is in `docs/validation.md`. The most important results:
 
 - A temporary `gh` shim that exports `GH_TOKEN` and `exec`s `/usr/bin/gh`
   preserved auth token output, version output, help, and exit codes.
+- A static Rust binary using `CommandExt::exec` reproduced the same behavior
+  against the real gh.
 - Real git with the real gh helper returned `x-access-token` and the env token.
 - An absolute git helper bypassed a PATH shim. A relative helper was resolved
   through PATH. This proves gh-app must rewrite the helper path.
@@ -178,11 +180,21 @@ The full evidence is in `docs/validation.md`. The most important results:
   authtype form unconditionally lost the password. The helper must branch.
 - `git credential approve` calls the helper as `store`, and `reject` calls it
   as `erase`, both with credential fields on stdin.
+- `ephemeral=1` prevented `git-credential-cache` from serving the credential on
+  a second real HTTP run. Without it, the cache served the credential.
+- `GH_TOKEN` takes precedence over `GITHUB_TOKEN`, is not used for GHES, and is
+  used for `*.ghe.com`. `GH_ENTERPRISE_TOKEN` is required for GHES.
+- gh configures a gist helper for `*.ghe.com` but not for GHES.
 - The selected ureq 3 plus rustls plus ring dependency stack compiled, and did
   not pull `aws-lc-rs`.
-- Static musl and aarch64 builds could not be run in this environment because
-  the rustup home is read-only and no cross toolchain is installed. This remains
-  a CI release gate.
+- Static musl builds were demonstrated with scratch-only Rust targets and musl
+  GCC toolchains: x86_64 built and executed, aarch64 built but not executed
+  because QEMU is unavailable. CI must still build the actual gh-app source.
+- A static x86_64 JWT plus HTTP probe ran against the mock endpoint. A static
+  aarch64 build completed.
+- The real GitHub token endpoint returned 401 `A JSON web token could not be
+  decoded` for a fake app ID, which is expected because no public key exists for
+  that app. Real app acceptance remains blocked.
 
 ## 12. Sources
 

@@ -50,18 +50,23 @@ Acceptance:
 ## M0.5: design validation (completed)
 
 - Real gh shim test with `GH_TOKEN` and `exec`.
+- Static Rust exec shim test against real gh.
+- GH_TOKEN, GITHUB_TOKEN, GH_ENTERPRISE_TOKEN, GH_HOST precedence tests.
 - Real git credential fill with the real gh helper.
 - Absolute versus relative helper path test.
 - Real git HTTP 401 test for `capability[]=authtype`.
+- Real git HTTP cache test with and without `ephemeral=1`.
 - Real git approve/reject test for store/erase.
-- RS256 JWT signature verified by OpenSSL.
+- RS256 JWT verified for 2048/4096 PKCS#1, 2048 PKCS#8, and 1024 rejection.
 - Mock installation-token endpoint test with ureq.
+- Real GitHub token endpoint error shape with a fake app.
 - Dependency stack compiled and checked for `aws-lc-rs`.
-- Static musl and aarch64 builds attempted and recorded as blocked by the
-  environment.
+- Static x86_64 musl build executed and ran; static aarch64 musl build completed
+  but was not run because QEMU is unavailable.
 
 Acceptance: evidence recorded in `docs/validation.md`, including the limitation
-that real installation-token and static cross-build checks are release gates.
+that real installation-token checks and CI builds of the actual source remain
+release gates.
 
 ## M1.5: config and permissions
 
@@ -181,10 +186,11 @@ Acceptance:
 - Add shell completions.
 - Tag and publish.
 
-Cross-build note: static musl and aarch64 builds could not be run in the design
-environment because the toolchain is root-owned, no musl or aarch64 compiler is
-installed, and there is no Docker, `cross`, or passwordless sudo. CI must be the
-release gate for these artifacts.
+Cross-build note: scratch-only Rust targets and musl GCC toolchains were
+installed under the scratch directory. A dependency probe built as a static-pie
+x86_64 binary (3.2 MiB, executed) and a static aarch64 binary (3.1 MiB, not
+executed because QEMU is unavailable). CI must still build and smoke-test the
+actual gh-app source for both targets before release.
 
 ## Test matrix
 
