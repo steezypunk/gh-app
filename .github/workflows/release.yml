@@ -24,18 +24,13 @@ jobs:
       - name: Build
         run: cross build --release --locked --target ${{ matrix.target }}
       - name: Package
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          cp "target/${{ matrix.target }}/release/gh-app" dist/gh-app
-          tar -C dist -czf "gh-app-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" gh-app
-          sha256sum "gh-app-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" > "gh-app-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256"
+        run: ./scripts/package.sh "${{ github.ref_name }}" "${{ matrix.target }}"
       - uses: actions/upload-artifact@v4
         with:
           name: gh-app-${{ matrix.target }}
           path: |
-            gh-app-*.tar.gz
-            gh-app-*.tar.gz.sha256
+            dist/gh-app-*.tar.gz
+            dist/gh-app-*.tar.gz.sha256
 
   publish:
     needs: build

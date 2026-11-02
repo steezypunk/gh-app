@@ -11,7 +11,8 @@ version="$1"
 target="$2"
 binary="target/${target}/release/gh-app"
 dist="dist"
-archive="${dist}/gh-app-${version}-${target}.tar.gz"
+archive_name="gh-app-${version}-${target}.tar.gz"
+archive="${dist}/${archive_name}"
 
 if [ ! -f "$binary" ]; then
   echo "missing binary: $binary" >&2
@@ -22,7 +23,7 @@ fi
 mkdir -p "$dist"
 cp "$binary" "$dist/gh-app"
 tar -C "$dist" -czf "$archive" gh-app
-sha256sum "$archive" > "${archive}.sha256"
+(cd "$dist" && sha256sum "$archive_name" > "${archive_name}.sha256")
 rm -f "$dist/gh-app"
 
 echo "created $archive"
