@@ -65,17 +65,24 @@ pub fn get_or_mint(
     client: &GitHubClient,
     force: bool,
     skew_seconds: u64,
+    use_cache: bool,
 ) -> Result<CachedToken> {
     let scope_hash = scope_hash(config);
     let key = cache_key(&host.hostname, config, &scope_hash);
 
-    if !force && let Some(cached) = load(&key, skew_seconds)? {
+    if use_cache
+        && !force
+        && let Some(cached) = load(&key, skew_seconds)?
+    {
         return Ok(cached);
     }
 
-    let _lock = lock(&key)?;
+    let _lock = if use_cache { Some(lock(&key)?) } else { None };
 
-    if !force && let Some(cached) = load(&key, skew_seconds)? {
+    if use_cache
+        && !force
+        && let Some(cached) = load(&key, skew_seconds)?
+    {
         return Ok(cached);
     }
 
@@ -83,12 +90,36 @@ pub fn get_or_mint(
         .client_id
         .clone()
         .unwrap_or_else(|| config.app_id.to_string());
-    let token = jwt::build(signer, &issuer, jwt::unix_now()?)?;
     let request = mint_request(config);
-    let response = client.mint_token(&token, config.installation_id, Some(&request))?;
+    let mut jwt_now = jwt::unix_now()?;
+    let mut attempt = 0u8;
+    let response = loop {
+        let token = jwt::build(signer, &issuer, jwt_now)?;
+        match client.mint_token(&token, config.installation_id, Some(&request)) {
+            Ok(response) => break response,
+            Err(Error::Api {
+                status: 401,
+                server_epoch: Some(server_epoch),
+                ..
+            }) if attempt == 0 => {
+                jwt_now = server_epoch;
+                attempt = 1;
+            }
+            Err(error) => return Err(error),
+        }
+    };
     let cached = CachedToken::from_response(host, config, &scope_hash, response)?;
-    save(&key, &cached)?;
+    if use_cache {
+        save(&key, &cached)?;
+    }
     Ok(cached)
+}
+
+pub fn cache_enabled(configured: bool) -> bool {
+    configured
+        && !std::env::var("GH_APP_NO_CACHE")
+            .map(|value| matches!(value.as_str(), "1" | "true" | "yes"))
+            .unwrap_or(false)
 }
 
 pub fn store_response(

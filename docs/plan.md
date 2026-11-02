@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: core product implemented; docs, prompts, retries, and release publishing remain
+Status: core product and docs implemented; interactive UX and release publishing remain
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Current progress
@@ -10,16 +10,17 @@ Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 - M1 scaffold, paths, config, permissions, `auth list`, `version`, and basic
   `doctor`: complete.
 - M2 key loading, JWT signing, API client, token minting, and token cache:
-  complete except 401/429/5xx retry logic.
+  complete, including 401 clock-skew retry and 429/5xx backoff.
 - M3 `auth login`, `status`, `token`, `refresh`, `logout`, and non-interactive
   installation discovery: complete. Interactive prompts and keyring storage are
   deferred.
 - M4 real `gh` discovery, token injection, auth redirection, and shim setup:
-  core complete. Strict/fallback/no-cache switches and full remote inference are
-  not implemented.
+  complete, including strict/fallback/no-cache switches and git remote host
+  inference.
 - M4.5 git credential helper and `auth setup-git`: complete.
-- Release workflows and local static builds: present. Published artifacts and
-  interactive UX remain.
+- M4.6 install, security, troubleshooting, and bot-limit docs: complete.
+- Release workflows and local static builds: present. Published artifacts,
+  interactive prompts, and keyring remain.
 
 ## Goal
 
@@ -157,7 +158,7 @@ Result:
   length, cache key stability, scope hashing, and token masking.
 - Mock API integration confirms login minting, cache reuse, refresh, status
   verification, and cache file mode.
-- Clock-skew, 429, and 5xx retry logic remains pending.
+- Clock-skew, 429, and 5xx retry logic is implemented and unit tested.
 
 ## M3: auth commands (core complete)
 
@@ -214,9 +215,10 @@ Result:
   implemented.
 - Tests use a fake real gh and assert token injection and exit behavior.
 - `gh --version` does not touch the network.
-- `GH_APP_STRICT`, `GH_APP_FALLBACK`, and `GH_APP_NO_CACHE` are not implemented.
-- Target host inference covers explicit flags, `GH_HOST`, and the default host;
-  full git-remote inference is future work.
+- `GH_APP_STRICT`, `GH_APP_FALLBACK`, `GH_APP_FORCE`, and `GH_APP_NO_CACHE` are
+  implemented.
+- Target host inference covers explicit flags, `GH_HOST`, configured git
+  remotes, and the default host.
 
 ## M4.5: git credential helper (complete)
 
@@ -250,7 +252,7 @@ Result:
 - Integration tests assert both output forms, and `auth setup-git` writes the
   blank reset plus absolute helper command.
 
-## M4.6: docs
+## M4.6: docs (complete)
 
 - README: install, create app, permissions, login, setup, verify, migrate from
   PAT, uninstall.
@@ -260,7 +262,10 @@ Result:
   PATH order, `git_protocol=ssh`, long-running commands.
 - Document bot identity limitations.
 
-## M5: release
+Result: README quick start, permissions, storage, environment variables,
+troubleshooting, bot limitations, and SECURITY.md are present.
+
+## M5: release (workflow present; publishing pending)
 
 - Release profile: LTO, strip, panic abort, codegen units 1.
 - Cross build both musl targets.
@@ -268,6 +273,10 @@ Result:
 - Generate SHA256SUMS.
 - Add shell completions.
 - Tag and publish.
+
+CI and release workflows for both musl targets are in place. Local static
+x86_64 and aarch64 builds run. GitHub-hosted publication was not executed in
+this environment.
 
 Cross-build note: scratch-only Rust targets and musl GCC toolchains were
 installed under the scratch directory. A dependency probe built as a static-pie

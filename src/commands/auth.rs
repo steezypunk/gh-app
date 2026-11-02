@@ -191,7 +191,8 @@ fn login(args: LoginArgs) -> Result<i32> {
     };
 
     config.hosts.insert(hostname.clone(), host_config);
-    if let Some(response) = minted_response
+    if token::cache_enabled(config.settings.cache_tokens)
+        && let Some(response) = minted_response
         && let Err(error) = token::store_response(&host, &config.hosts[&hostname], response)
     {
         eprintln!("warning: could not cache the minted token: {error}");
@@ -248,13 +249,17 @@ fn status(args: StatusArgs) -> Result<i32> {
             continue;
         }
         let key = token::cache_key(hostname, host_config, &token::scope_hash(host_config));
-        let cached = match token::load(&key, config.settings.refresh_skew_seconds) {
-            Ok(cached) => cached,
-            Err(error) => {
-                eprintln!("{hostname}: {error}");
-                failures += 1;
-                None
+        let cached = if token::cache_enabled(config.settings.cache_tokens) {
+            match token::load(&key, config.settings.refresh_skew_seconds) {
+                Ok(cached) => cached,
+                Err(error) => {
+                    eprintln!("{hostname}: {error}");
+                    failures += 1;
+                    None
+                }
             }
+        } else {
+            None
         };
         let mut verify_error = None;
         let verified = if args.verify {
@@ -268,6 +273,7 @@ fn status(args: StatusArgs) -> Result<i32> {
                             &client,
                             true,
                             config.settings.refresh_skew_seconds,
+                            token::cache_enabled(config.settings.cache_tokens),
                         ) {
                             Ok(token) => Some(token),
                             Err(error) => {
@@ -367,6 +373,7 @@ fn token_command(args: TokenArgs) -> Result<i32> {
         &client,
         args.refresh,
         config.settings.refresh_skew_seconds,
+        token::cache_enabled(config.settings.cache_tokens),
     )?;
     println!("{}", token.token);
     Ok(0)
@@ -386,6 +393,7 @@ fn refresh(args: RefreshArgs) -> Result<i32> {
         &client,
         true,
         config.settings.refresh_skew_seconds,
+        token::cache_enabled(config.settings.cache_tokens),
     )?;
     println!(
         "Refreshed {hostname}; token expires at {}",

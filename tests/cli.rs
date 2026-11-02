@@ -24,6 +24,9 @@ fn isolated(dir: &Path) -> Command {
         .env_remove("GH_APP_API_URL")
         .env_remove("GH_APP_APP_ID")
         .env_remove("GH_APP_INSTALLATION_ID")
+        .env_remove("GH_APP_NO_CACHE")
+        .env_remove("GH_APP_STRICT")
+        .env_remove("GH_APP_FALLBACK")
         .env_remove("GH_HOST")
         .env_remove("GH_TOKEN")
         .env_remove("GH_ENTERPRISE_TOKEN")
@@ -397,6 +400,17 @@ fn login_verify_token_cache_refresh_and_status() {
         .stdout(predicate::str::contains("ephemeral=1"))
         .stdout(predicate::str::contains("credential="));
 
+    let before_no_cache = server.mint_count();
+    for _ in 0..2 {
+        isolated(dir.path())
+            .env("GH_APP_NO_CACHE", "1")
+            .args(["auth", "token"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ghs_test_token"));
+    }
+    assert_eq!(server.mint_count(), before_no_cache + 2);
+
     isolated(dir.path())
         .args(["auth", "logout", "--yes"])
         .assert()
@@ -515,6 +529,33 @@ fn gh_symlink_passthrough() {
         .assert()
         .success()
         .stdout(predicate::str::contains("fake-gh --version"));
+}
+
+#[cfg(unix)]
+#[test]
+fn gh_symlink_strict_without_config() {
+    use std::os::unix::fs::symlink;
+
+    let dir = tempfile::tempdir().unwrap();
+    let fake_gh = dir.path().join("fake-gh");
+    fs::write(&fake_gh, "#!/bin/sh\nexit 0\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&fake_gh, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let link = dir.path().join("gh");
+    symlink(assert_cmd::cargo::cargo_bin("gh-app"), &link).unwrap();
+    let mut cmd = Command::new(link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GH_APP_STRICT", "1")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["api", "user"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("GH_APP_STRICT"));
 }
 
 #[cfg(unix)]

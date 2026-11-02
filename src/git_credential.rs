@@ -61,6 +61,7 @@ fn get() -> Result<i32> {
         &client,
         false,
         config.settings.refresh_skew_seconds,
+        token::cache_enabled(config.settings.cache_tokens),
     )?;
 
     let username = "x-access-token";

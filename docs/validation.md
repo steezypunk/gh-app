@@ -499,6 +499,10 @@ runtime environment.
 | auth setup-git | temp git config test | verified |
 | setup shim install | temp PATH and symlink test | verified |
 | Release workflows | present, not run in this environment | configured |
+| 429 retry | local mock returns 429 then 201 | verified |
+| Strict mode | no-config strict failure test | verified |
+| No-cache mode | two token runs mint twice | verified |
+| Remote host parsing | https, ssh, and git@ forms | verified |
 
 ## 13. M1 scaffold validation
 
@@ -544,7 +548,7 @@ cleanup.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 37 unit tests and 12 CLI integration tests pass.
+- `cargo test`: 39 unit tests and 13 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - Static `--version` bypasses token minting.
@@ -554,6 +558,11 @@ cleanup.
   `ephemeral=1`.
 - `auth setup-git` writes the blank reset and an absolute helper command.
 - `setup` creates the `gh` symlink and checks PATH ordering.
+- A local mock returns 429 with `Retry-After: 0`, then 201; the client retries
+  and succeeds.
+- `GH_APP_NO_CACHE=1` causes two token runs to mint twice.
+- `GH_APP_STRICT` fails when no host is configured.
+- Remote host parsing covers HTTPS, `ssh://`, and `git@host:path` forms.
 - The final static binaries are 3.8 MiB x86_64 and 3.1 MiB aarch64. Both run
   `gh-app version`; the aarch64 binary runs under qemu-aarch64.
 - CI and release workflows for both musl targets are present but were not run in

@@ -24,10 +24,20 @@ pub fn run(args: Vec<String>) -> Result<i32> {
 
     let config = load(&paths::config_file()?)?;
     if config.hosts.is_empty() {
+        if truthy("GH_APP_STRICT") {
+            return Err(Error::message(
+                "GH_APP_STRICT is set but no hosts are configured",
+            ));
+        }
         return exec(real_gh, args, None);
     }
     let hostname = target_host(&args, &config);
     let Some(host_config) = config.hosts.get(&hostname).cloned() else {
+        if truthy("GH_APP_STRICT") {
+            return Err(Error::message(format!(
+                "GH_APP_STRICT is set but {hostname} is not configured"
+            )));
+        }
         return exec(real_gh, args, None);
     };
     let host = HostInfo::new(&hostname)?.with_api_url(host_config.api_url.as_deref())?;
@@ -38,14 +48,23 @@ pub fn run(args: Vec<String>) -> Result<i32> {
 
     let signer = auth::signer_for(&host_config)?;
     let client = GitHubClient::new(&host, auth::ca_bundle(&host_config).as_deref())?;
-    let cached = token::get_or_mint(
+    let cached = match token::get_or_mint(
         &host,
         &host_config,
         &signer,
         &client,
         false,
         config.settings.refresh_skew_seconds,
-    )?;
+        token::cache_enabled(config.settings.cache_tokens),
+    ) {
+        Ok(cached) => cached,
+        Err(error) => {
+            if truthy("GH_APP_FALLBACK") {
+                return exec(real_gh, args, None);
+            }
+            return Err(error);
+        }
+    };
     exec(real_gh, args, Some((host.token_env, cached.token)))
 }
 
@@ -120,7 +139,33 @@ fn target_host(args: &[String], config: &Config) -> String {
     {
         return host.to_ascii_lowercase();
     }
+    if let Some(host) = git_remote_host()
+        && config.hosts.contains_key(&host)
+    {
+        return host;
+    }
     config.settings.default_host.clone()
+}
+
+fn git_remote_host() -> Option<String> {
+    let output = Command::new("git")
+        .args(["remote", "get-url", "origin"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value = String::from_utf8(output.stdout).ok()?;
+    parse_remote_host(value.trim())
+}
+
+fn parse_remote_host(value: &str) -> Option<String> {
+    if let Ok(url) = url::Url::parse(value) {
+        return url.host_str().map(|host| host.to_ascii_lowercase());
+    }
+    let rest = value.strip_prefix("git@")?;
+    let (host, _) = rest.split_once(':')?;
+    Some(host.to_ascii_lowercase())
 }
 
 fn flag_value(args: &[String], name: &str) -> Option<String> {
@@ -215,4 +260,26 @@ fn truthy(name: &str) -> bool {
     std::env::var(name)
         .map(|value| matches!(value.as_str(), "1" | "true" | "yes"))
         .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_remote_hosts() {
+        assert_eq!(
+            parse_remote_host("https://github.com/owner/repo.git").as_deref(),
+            Some("github.com")
+        );
+        assert_eq!(
+            parse_remote_host("git@github.com:owner/repo.git").as_deref(),
+            Some("github.com")
+        );
+        assert_eq!(
+            parse_remote_host("ssh://git@ghe.example.com/owner/repo.git").as_deref(),
+            Some("ghe.example.com")
+        );
+        assert_eq!(parse_remote_host("not a url"), None);
+    }
 }

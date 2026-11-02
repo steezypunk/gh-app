@@ -59,8 +59,20 @@ impl GitHubClient {
         request: Option<&MintRequest>,
     ) -> Result<TokenResponse> {
         let path = format!("/app/installations/{installation_id}/access_tokens");
-        let data = self.post_raw(&path, jwt, request)?;
-        parse_response(data)
+        let mut attempt = 0u32;
+        loop {
+            let data = self.post_raw(&path, jwt, request)?;
+            if (200..300).contains(&data.status) {
+                return parse_response(data);
+            }
+            if (data.status == 429 || data.status >= 500) && attempt < 2 {
+                let delay = data.retry_after.unwrap_or(1u64 << attempt).min(30);
+                std::thread::sleep(Duration::from_secs(delay));
+                attempt += 1;
+                continue;
+            }
+            return Err(parse_api_error(data));
+        }
     }
 
     pub fn list_repositories(&self, token: &str) -> Result<RepositoryPage> {
@@ -111,6 +123,8 @@ struct ResponseData {
     status: u16,
     body: String,
     request_id: Option<String>,
+    server_epoch: Option<u64>,
+    retry_after: Option<u64>,
 }
 
 fn parse_response<T: DeserializeOwned>(data: ResponseData) -> Result<T> {
@@ -128,6 +142,18 @@ fn into_response_data(mut response: http::Response<ureq::Body>) -> Result<Respon
         .get("x-github-request-id")
         .and_then(|value| value.to_str().ok())
         .map(str::to_string);
+    let server_epoch = response
+        .headers()
+        .get("date")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| httpdate::parse_http_date(value).ok())
+        .and_then(|date| date.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_secs());
+    let retry_after = response
+        .headers()
+        .get("retry-after")
+        .and_then(|value| value.to_str().ok())
+        .and_then(parse_retry_after);
     let body = response
         .body_mut()
         .read_to_string()
@@ -136,6 +162,8 @@ fn into_response_data(mut response: http::Response<ureq::Body>) -> Result<Respon
         status,
         body,
         request_id,
+        server_epoch,
+        retry_after,
     })
 }
 
@@ -156,7 +184,17 @@ fn parse_api_error(data: ResponseData) -> Error {
                 trimmed.chars().take(300).collect()
             }
         });
-    Error::api(data.status, message, data.request_id)
+    Error::api(data.status, message, data.request_id, data.server_epoch)
+}
+
+fn parse_retry_after(value: &str) -> Option<u64> {
+    if let Ok(seconds) = value.parse::<u64>() {
+        return Some(seconds);
+    }
+    httpdate::parse_http_date(value)
+        .ok()
+        .and_then(|date| date.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_secs())
 }
 
 fn load_roots(path: &Path) -> Result<RootCerts> {
@@ -178,4 +216,51 @@ fn load_roots(path: &Path) -> Result<RootCerts> {
         .map(|der| Certificate::from_der(der))
         .collect();
     Ok(RootCerts::new_with_certs(&certificates))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn retries_429_then_succeeds() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&attempts);
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let attempt = counter.fetch_add(1, Ordering::SeqCst);
+                let mut stream = stream;
+                let mut buffer = [0u8; 4096];
+                let _ = stream.read(&mut buffer);
+                let (status, body) = if attempt == 0 {
+                    (429, r#"{"message":"rate limited"}"#.to_string())
+                } else {
+                    (
+                        201,
+                        r#"{"token":"ghs_retry","expires_at":"2030-01-01T00:00:00Z","permissions":{},"repository_selection":"all"}"#
+                            .to_string(),
+                    )
+                };
+                let response = format!(
+                    "HTTP/1.1 {status} OK\r\nContent-Type: application/json\r\nRetry-After: 0\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        let host = HostInfo::new("github.com")
+            .unwrap()
+            .with_api_url(Some(&format!("http://{address}")))
+            .unwrap();
+        let client = GitHubClient::new(&host, None).unwrap();
+        let response = client.mint_token("jwt", 1, None).unwrap();
+        assert_eq!(response.token, "ghs_retry");
+        assert_eq!(attempts.load(Ordering::SeqCst), 2);
+    }
 }
