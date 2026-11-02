@@ -9,9 +9,18 @@ fi
 
 version="$1"
 target="$2"
+case "$target" in
+  x86_64-unknown-linux-musl) platform="linux-amd64" ;;
+  aarch64-unknown-linux-musl) platform="linux-arm64" ;;
+  *)
+    echo "unsupported target: $target" >&2
+    echo "expected x86_64-unknown-linux-musl or aarch64-unknown-linux-musl" >&2
+    exit 2
+    ;;
+esac
 binary="target/${target}/release/gh-app"
 dist="dist"
-archive_name="gh-app-${version}-${target}.tar.gz"
+archive_name="gh-app-${version}-${platform}.tar.gz"
 archive="${dist}/${archive_name}"
 
 if [ ! -f "$binary" ]; then

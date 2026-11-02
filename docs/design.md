@@ -852,13 +852,14 @@ CI:
 Release artifacts:
 
 ```text
-gh-app-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz
-gh-app-vX.Y.Z-aarch64-unknown-linux-musl.tar.gz
-SHA256SUMS
+gh-app-vX.Y.Z-linux-amd64.tar.gz
+gh-app-vX.Y.Z-linux-arm64.tar.gz
+gh-app-vX.Y.Z-linux-amd64.tar.gz.sha256
+gh-app-vX.Y.Z-linux-arm64.tar.gz.sha256
 ```
 
-Each archive contains `gh-app`, `LICENSE`, `README.md`, shell completions, and a
-short install note.
+Each archive contains the static `gh-app` binary. Both archives are built from
+the musl targets but use architecture-focused names.
 
 ## 15. Test plan
 

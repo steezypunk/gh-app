@@ -61,7 +61,9 @@ Package a built static binary:
 ./scripts/package.sh v0.1.0 x86_64-unknown-linux-musl
 ```
 
-Archives and SHA256 files are written to `dist/`.
+Archives and SHA256 files are written to `dist/` using
+`gh-app-<version>-linux-amd64.tar.gz` and
+`gh-app-<version>-linux-arm64.tar.gz`.
 
 ## Quick start
 
