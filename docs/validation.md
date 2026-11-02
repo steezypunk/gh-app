@@ -515,6 +515,8 @@ runtime environment.
 | Final-binary env precedence | GH_TOKEN, GITHUB_TOKEN, enterprise, force | verified |
 | Final-binary CONNECT proxy | proxy saw expected host and origin minted | verified |
 | Final-binary custom CA | custom root accepted, default roots reject | verified |
+| Final-binary retry policy | 429, 500, and 401 clock skew retried once | verified |
+| Final-binary refresh skew | near-expiry cached token reminted | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -673,6 +675,11 @@ and the final musl artifacts:
   the token. A local CA supplied through `ca_bundle` was accepted, while the
   same HTTPS endpoint without the bundle failed with
   `invalid peer certificate: UnknownIssuer`.
+- Retry policy with the final binary: a mock endpoint returned 429, 500, or 401
+  once and then 201. Each case succeeded after exactly two POSTs. For the 401
+  case the server `Date` was two hours ahead, and the retried JWT `iat` shifted
+  to match that clock. A token expiring inside the 300-second skew was reminted
+  on the second `auth token` call.
 - Permanent regressions added for unknown host, HTTP blocking, 0644 config, and
   0644 key handling, plus `GH_APP_FORCE`, `GITHUB_TOKEN`, and GHES enterprise
   token precedence.
