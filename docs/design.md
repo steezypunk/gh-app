@@ -811,8 +811,8 @@ host.
 
 A scratch validation built the dependency probe as a static-pie x86_64 binary
 with a locally extracted musl GCC and executed it, and as a static aarch64
-binary with the musl.cc cross GCC. The aarch64 binary was not executed because
-QEMU is unavailable. CI still owns the release build and smoke test.
+binary with the musl.cc cross GCC. The aarch64 binary was executed under
+qemu-aarch64. CI still owns the release build and smoke test.
 
 CI:
 
@@ -891,7 +891,7 @@ Acceptance: storage, crypto, host behavior, and compatibility decisions agreed,
 and the real-interface evidence in `docs/validation.md` recorded. Real
 installation-token checks and CI builds of the actual source remain release
 gates. Static x86_64 was built and executed in a scratch toolchain; static
-aarch64 was built but not executed because QEMU is unavailable.
+aarch64 was built and executed under qemu-aarch64.
 
 ### M1: scaffold and config
 

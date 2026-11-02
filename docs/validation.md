@@ -277,11 +277,12 @@ scratch directory. The dependency probe was built for both architectures:
 | target | result |
 |---|---|
 | `x86_64-unknown-linux-musl` | static-pie ELF, 3.2 MiB, executed successfully |
-| `aarch64-unknown-linux-musl` | static aarch64 ELF, 3.1 MiB, built successfully |
+| `aarch64-unknown-linux-musl` | static aarch64 ELF, 3.1 MiB, executed under qemu-aarch64 |
 
 The x86_64 build used a locally extracted musl 1.2.6 GCC toolchain. The aarch64
 build used the `aarch64-linux-musl-cross` GCC 11.2.1 toolchain from musl.cc.
-The aarch64 binary was not executed because QEMU user emulation is not installed.
+The aarch64 binary was executed with a locally extracted static `qemu-aarch64`
+5.2.0 and printed `ok`.
 
 This proves the dependency set and build flags are viable for both requested
 architectures. It does not replace a CI build of the actual gh-app source.
@@ -294,7 +295,8 @@ The JWT-plus-HTTP probe was built statically and exercised:
   local mock token endpoint. It produced the expected POST, Bearer JWT, headers,
   and parsed the token response.
 - `aarch64-unknown-linux-musl`: static aarch64, 3.6 MiB, built successfully.
-  Not executed because QEMU is unavailable.
+  Executed under qemu-aarch64 against the same mock endpoint and produced the
+  same request and response.
 
 ## 9.5 Real GitHub endpoint with a fake app
 
@@ -342,6 +344,8 @@ runtime environment.
 - `ephemeral=1` is effective against `git-credential-cache` in a real HTTP flow.
 - Static musl builds work for x86_64 and aarch64 in a scratch toolchain; CI must
   still build and smoke-test the actual gh-app source.
+- The static aarch64 JWT-plus-HTTP probe also ran under qemu-aarch64 against the
+  mock endpoint.
 
 ## 12. Acceptance trace
 
@@ -365,7 +369,7 @@ runtime environment.
 | Real GitHub JWT endpoint | fake app returned expected 401 | verified error path |
 | Real installation token | no credentials available | blocked |
 | Static x86_64 binary | static-pie built and executed | verified |
-| Static aarch64 binary | static ELF built, not executed | built only |
-| Static mint probe | x86_64 ran against mock, aarch64 built | verified / built only |
+| Static aarch64 binary | static ELF built and run under qemu | verified |
+| Static mint probe | x86_64 and aarch64 ran against mock | verified |
 | Key storage and permission model | design only | not implemented |
 | gh-app auth login UX | design only | not implemented |

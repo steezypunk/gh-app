@@ -188,10 +188,10 @@ The full evidence is in `docs/validation.md`. The most important results:
 - The selected ureq 3 plus rustls plus ring dependency stack compiled, and did
   not pull `aws-lc-rs`.
 - Static musl builds were demonstrated with scratch-only Rust targets and musl
-  GCC toolchains: x86_64 built and executed, aarch64 built but not executed
-  because QEMU is unavailable. CI must still build the actual gh-app source.
+  GCC toolchains: x86_64 built and executed, aarch64 built and executed under
+  qemu-aarch64. CI must still build the actual gh-app source.
 - A static x86_64 JWT plus HTTP probe ran against the mock endpoint. A static
-  aarch64 build completed.
+  aarch64 probe also ran under qemu-aarch64.
 - The real GitHub token endpoint returned 401 `A JSON web token could not be
   decoded` for a fake app ID, which is expected because no public key exists for
   that app. Real app acceptance remains blocked.

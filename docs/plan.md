@@ -62,7 +62,7 @@ Acceptance:
 - Real GitHub token endpoint error shape with a fake app.
 - Dependency stack compiled and checked for `aws-lc-rs`.
 - Static x86_64 musl build executed and ran; static aarch64 musl build completed
-  but was not run because QEMU is unavailable.
+  and ran under qemu-aarch64.
 
 Acceptance: evidence recorded in `docs/validation.md`, including the limitation
 that real installation-token checks and CI builds of the actual source remain
@@ -188,9 +188,9 @@ Acceptance:
 
 Cross-build note: scratch-only Rust targets and musl GCC toolchains were
 installed under the scratch directory. A dependency probe built as a static-pie
-x86_64 binary (3.2 MiB, executed) and a static aarch64 binary (3.1 MiB, not
-executed because QEMU is unavailable). CI must still build and smoke-test the
-actual gh-app source for both targets before release.
+x86_64 binary (3.2 MiB, executed) and a static aarch64 binary (3.1 MiB, executed
+under qemu-aarch64). CI must still build and smoke-test the actual gh-app source
+for both targets before release.
 
 ## Test matrix
 
