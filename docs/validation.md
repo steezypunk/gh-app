@@ -506,6 +506,7 @@ runtime environment.
 | Real git HTTPS through setup-git | 401 server received expected Basic auth | verified |
 | Real git HTTP with host:port | helper matched and 401 retry succeeded | verified |
 | Final archive extraction | both binaries run, auth login/list/doctor pass | verified |
+| Clean-container x86_64 smoke | scratch image ran version/list/doctor | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -618,4 +619,8 @@ Additional checks were run with the actual built binary:
   --no-verify`, `auth list`, and `doctor --offline` passed for the extracted
   x86_64 artifact and for the extracted aarch64 artifact under qemu-aarch64,
   each with an isolated config, cache, and HOME.
+- A scratch container containing only the x86_64 artifact ran `version`, then
+  `auth list` and `doctor --offline` against a baked isolated config. The
+  aarch64 image built but could not execute because the container host has no
+  arm64 binfmt emulation; the same artifact passed under host qemu-aarch64.
 - The final static sizes are 5.8 MiB (x86_64) and 4.8 MiB (aarch64).

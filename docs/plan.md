@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: core product, interactive UX, and docs implemented; clean-container smoke test and release publishing remain
+Status: core product, interactive UX, and docs implemented; arm64 container emulation and release publishing remain
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Current progress
@@ -269,8 +269,8 @@ troubleshooting, bot limitations, and SECURITY.md are present.
 
 - Release profile: LTO, strip, panic abort, codegen units 1.
 - Cross build both musl targets.
-- Smoke test artifacts in a clean container (local extraction and runs are
-  verified; no container was run).
+- Smoke test artifacts in a clean container (x86_64 scratch image passed; the
+  aarch64 image cannot execute because the container host has no binfmt).
 - Generate per-target SHA256 files.
 - Add shell completions (optional, not implemented).
 - Tag and publish.
