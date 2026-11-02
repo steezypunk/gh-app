@@ -3,9 +3,9 @@
 `gh-app` is a Rust CLI that lets the GitHub CLI (`gh`) and `git` use GitHub App
 installation credentials instead of a personal access token.
 
-This repository currently contains the completed design and the first
-implementation milestone: configuration paths, config schema, key permission
-checks, and CLI scaffolding.
+The implementation is complete for Linux. It shadows `gh` through a symlink,
+injects a cached GitHub App installation token, and configures git to use the
+same token through a credential helper.
 
 ## Documentation
 
@@ -48,11 +48,20 @@ cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```
 
+Static builds use the musl targets:
+
+```sh
+cargo build --release --target x86_64-unknown-linux-musl
+cargo build --release --target aarch64-unknown-linux-musl
+```
+
 Package a built static binary:
 
 ```sh
 ./scripts/package.sh v0.1.0 x86_64-unknown-linux-musl
 ```
+
+Archives and SHA256 files are written to `dist/`.
 
 ## Quick start
 
@@ -111,10 +120,13 @@ defaults are under `%APPDATA%` and `%LOCALAPPDATA%`.
 | `GH_APP_HOST` | target hostname override |
 | `GH_APP_APP_ID` | app ID for non-interactive login |
 | `GH_APP_INSTALLATION_ID` | installation ID for non-interactive login |
+| `GH_APP_CLIENT_ID` | client ID to use as the JWT issuer |
 | `GH_APP_PRIVATE_KEY` | PEM contents for login or signer source |
 | `GH_APP_PRIVATE_KEY_PATH` | PEM path for login |
 | `GH_APP_API_URL` | API base override |
 | `GH_APP_CA_BUNDLE` | additional PEM CA bundle |
+| `GH_APP_ALLOW_HTTP` | allow the git helper to answer plain HTTP requests |
+| `GH_APP_FORCE` | prefer the app token even when `GH_TOKEN` is set |
 | `GH_APP_STRICT` | fail instead of passing through when no app credential matches |
 | `GH_APP_FALLBACK` | pass through to gh if token minting fails |
 | `GH_APP_NO_CACHE` | disable the token cache |

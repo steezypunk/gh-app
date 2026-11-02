@@ -105,9 +105,9 @@ Result:
 - Static x86_64 musl build executed and ran; static aarch64 musl build completed
   and ran under qemu-aarch64.
 
-Acceptance: evidence recorded in `docs/validation.md`, including the limitation
-that real installation-token checks and CI builds of the actual source remain
-release gates.
+Acceptance: evidence recorded in `docs/validation.md`. At that point, real
+installation-token checks and CI builds of the actual source were still release
+gates; both were exercised later.
 
 ## M1.5: config and permissions (completed)
 
@@ -271,7 +271,7 @@ troubleshooting, bot limitations, and SECURITY.md are present.
 - Cross build both musl targets.
 - Smoke test artifacts in a clean container.
 - Generate SHA256SUMS.
-- Add shell completions.
+- Add shell completions (optional, not implemented).
 - Tag and publish.
 
 CI and release workflows for both musl targets are in place. Local static
@@ -280,10 +280,10 @@ produced checksum-verified tarballs for both. GitHub-hosted publication was not
 executed because this environment has no release remote or token.
 
 Cross-build note: scratch-only Rust targets and musl GCC toolchains were
-installed under the scratch directory. A dependency probe built as a static-pie
-x86_64 binary (3.2 MiB, executed) and a static aarch64 binary (3.1 MiB, executed
-under qemu-aarch64). CI must still build and smoke-test the actual gh-app source
-for both targets before release.
+installed under the scratch directory. The actual gh-app source was built for
+both targets after the final fixes, then executed (`version` on both, and
+`auth login` plus `auth list` on aarch64 under qemu-aarch64). The x86_64 binary
+is static-pie; the aarch64 binary is static.
 
 ## Test matrix
 
