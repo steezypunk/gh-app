@@ -560,6 +560,43 @@ fn gh_symlink_strict_without_config() {
 
 #[cfg(unix)]
 #[test]
+fn gh_symlink_fallback_on_mint_failure() {
+    use std::os::unix::fs::symlink;
+
+    let dir = tempfile::tempdir().unwrap();
+    write_config(dir.path());
+    fs::create_dir_all(dir.path().join("keys")).unwrap();
+    write_test_key(&dir.path().join("keys/github.com-123.pem"));
+    let config_path = dir.path().join("config.toml");
+    let mut config = fs::OpenOptions::new()
+        .append(true)
+        .open(&config_path)
+        .unwrap();
+    writeln!(config, "api_url = \"http://127.0.0.1:1\"").unwrap();
+
+    let fake_gh = dir.path().join("fake-gh");
+    fs::write(&fake_gh, "#!/bin/sh\nprintf 'fallback-ok\\n'\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&fake_gh, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let link = dir.path().join("gh");
+    symlink(assert_cmd::cargo::cargo_bin("gh-app"), &link).unwrap();
+    let mut cmd = Command::new(link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GH_APP_FALLBACK", "1")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["api", "user"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("fallback-ok"));
+}
+
+#[cfg(unix)]
+#[test]
 fn credential_helper_without_config_is_noop() {
     use std::os::unix::fs::symlink;
 

@@ -263,4 +263,42 @@ mod tests {
         assert_eq!(response.token, "ghs_retry");
         assert_eq!(attempts.load(Ordering::SeqCst), 2);
     }
+
+    #[test]
+    fn retries_500_then_succeeds() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&attempts);
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let attempt = counter.fetch_add(1, Ordering::SeqCst);
+                let mut stream = stream;
+                let mut buffer = [0u8; 4096];
+                let _ = stream.read(&mut buffer);
+                let (status, body) = if attempt == 0 {
+                    (500, r#"{"message":"server error"}"#.to_string())
+                } else {
+                    (
+                        201,
+                        r#"{"token":"ghs_retry_500","expires_at":"2030-01-01T00:00:00Z","permissions":{},"repository_selection":"all"}"#
+                            .to_string(),
+                    )
+                };
+                let response = format!(
+                    "HTTP/1.1 {status} OK\r\nContent-Type: application/json\r\nRetry-After: 0\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        let host = HostInfo::new("github.com")
+            .unwrap()
+            .with_api_url(Some(&format!("http://{address}")))
+            .unwrap();
+        let client = GitHubClient::new(&host, None).unwrap();
+        let response = client.mint_token("jwt", 1, None).unwrap();
+        assert_eq!(response.token, "ghs_retry_500");
+        assert_eq!(attempts.load(Ordering::SeqCst), 2);
+    }
 }

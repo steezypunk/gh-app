@@ -155,11 +155,11 @@ fn apply_url(fields: &mut HashMap<String, String>, value: &str) {
 }
 
 fn normalize_host(host: &str) -> String {
-    let mut host = host.trim().to_ascii_lowercase();
-    if let Some(value) = host.strip_suffix(":443") {
-        host = value.to_string();
-    } else if let Some(value) = host.strip_suffix(":80") {
-        host = value.to_string();
+    let host = host.trim().to_ascii_lowercase();
+    if let Some((name, port)) = host.rsplit_once(':')
+        && port.parse::<u16>().is_ok()
+    {
+        return name.to_string();
     }
     host
 }
@@ -178,10 +178,7 @@ mod tests {
     fn normalizes_default_ports() {
         assert_eq!(normalize_host("GitHub.com:443"), "github.com");
         assert_eq!(normalize_host("ghe.example.com:80"), "ghe.example.com");
-        assert_eq!(
-            normalize_host("ghe.example.com:8443"),
-            "ghe.example.com:8443"
-        );
+        assert_eq!(normalize_host("ghe.example.com:8443"), "ghe.example.com");
     }
 
     #[test]

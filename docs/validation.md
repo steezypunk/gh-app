@@ -503,6 +503,10 @@ runtime environment.
 | Strict mode | no-config strict failure test | verified |
 | No-cache mode | two token runs mint twice | verified |
 | Remote host parsing | https, ssh, and git@ forms | verified |
+| Real git HTTP with actual binary | 401 server received expected Basic auth | verified |
+| Interactive login PTY | prompts and installation selection | verified |
+| Keyring headless failure | clear error, no partial config | verified |
+| Aarch64 auth flow | login and list under qemu | verified |
 
 ## 13. M1 scaffold validation
 
@@ -542,13 +546,12 @@ The key, JWT, API, cache, and auth command layer was implemented and tested:
 - Static M2 binaries built: 3.5 MiB x86_64 and 2.9 MiB aarch64, both ran
   `version`. The x86_64 binary is static-pie; the aarch64 binary is static.
 
-Not covered: interactive prompts, keyring storage, actual GitHub App
-installation acceptance, retry behavior for 401/429/5xx, and git helper/config
-cleanup.
+At this milestone, interactive prompts, keyring storage, retry behavior, and
+git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 39 unit tests and 13 CLI integration tests pass.
+- `cargo test`: 40 unit tests and 14 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - Static `--version` bypasses token minting.
@@ -560,8 +563,10 @@ cleanup.
 - `setup` creates the `gh` symlink and checks PATH ordering.
 - A local mock returns 429 with `Retry-After: 0`, then 201; the client retries
   and succeeds.
+- A local mock returns 500 once, then 201; the client retries and succeeds.
 - `GH_APP_NO_CACHE=1` causes two token runs to mint twice.
 - `GH_APP_STRICT` fails when no host is configured.
+- `GH_APP_FALLBACK=1` executes the real gh when token minting fails.
 - Remote host parsing covers HTTPS, `ssh://`, and `git@host:path` forms.
 - Keyring support compiles into the static binary; headless runtime reports a
   clear no-default-store error.
@@ -569,10 +574,27 @@ cleanup.
   `gh-app version`; the aarch64 binary runs under qemu-aarch64.
 - CI and release workflows for both musl targets are present but were not run in
   this environment.
-- Local packaging produced x86_64 and aarch64 tarballs plus SHA256 files; both
-  checksums verified and each archive contains the `gh-app` binary.
+- Local packaging produced x86_64 and aarch64 tarballs plus SHA256 files under
+  `dist/`; both checksums verified and each archive contains the `gh-app`
+  binary.
 
-Not covered: real GitHub App installation acceptance, a full git HTTP flow using
-the installed helper binary, and GitHub-hosted release publication. Strict mode,
-no-cache, retry policy, keyring compile/runtime failure behavior, and remote
-host parsing are covered.
+Not covered: real GitHub App installation acceptance and GitHub-hosted release
+publication.
+
+## 16. Final end-to-end interface validation
+
+Additional checks were run with the actual built binary:
+
+- Real git HTTP flow: `auth login` against a mock API, `auth setup-git`, then
+  `git ls-remote` against a local 401 server. Git sent
+  `Authorization: Basic base64(x-access-token:ghs_actual_helper_token)`, matching
+  the token minted during login. The helper was invoked with `host:port` and
+  matched the configured host after stripping the port.
+- Interactive login through a PTY: host default, app ID, key path, and a
+  two-installation selection menu. The selected installation 456 was written to
+  config and the managed key was created.
+- `--keyring` on this headless host failed clearly with
+  `No default store has been set`, exit 1, and no partial config.
+- The aarch64 static binary completed `auth login --no-verify` and `auth list`
+  under qemu-aarch64, including key copy and config creation.
+- The final static sizes are 5.8 MiB (x86_64) and 4.8 MiB (aarch64).

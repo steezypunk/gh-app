@@ -11,7 +11,7 @@ version="$1"
 target="$2"
 binary="target/${target}/release/gh-app"
 dist="dist"
-archive="gh-app-${version}-${target}.tar.gz"
+archive="${dist}/gh-app-${version}-${target}.tar.gz"
 
 if [ ! -f "$binary" ]; then
   echo "missing binary: $binary" >&2

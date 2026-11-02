@@ -497,7 +497,9 @@ fn read_key_input(
         return Ok((Zeroizing::new(pem), Some(path)));
     }
 
-    if let Ok(value) = std::env::var("GH_APP_PRIVATE_KEY") {
+    if let Ok(value) = std::env::var("GH_APP_PRIVATE_KEY")
+        && !value.is_empty()
+    {
         return Ok((Zeroizing::new(value.into_bytes()), None));
     }
     if let Some(value) = env_string("GH_APP_PRIVATE_KEY_PATH") {
