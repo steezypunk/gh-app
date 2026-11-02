@@ -563,7 +563,9 @@ cleanup.
 - `GH_APP_NO_CACHE=1` causes two token runs to mint twice.
 - `GH_APP_STRICT` fails when no host is configured.
 - Remote host parsing covers HTTPS, `ssh://`, and `git@host:path` forms.
-- The final static binaries are 3.8 MiB x86_64 and 3.1 MiB aarch64. Both run
+- Keyring support compiles into the static binary; headless runtime reports a
+  clear no-default-store error.
+- The final static binaries are 5.8 MiB x86_64 and 4.8 MiB aarch64. Both run
   `gh-app version`; the aarch64 binary runs under qemu-aarch64.
 - CI and release workflows for both musl targets are present but were not run in
   this environment.

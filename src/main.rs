@@ -13,6 +13,7 @@ mod git_credential;
 mod github;
 mod jwt;
 mod key;
+mod keyring_store;
 mod paths;
 mod token;
 

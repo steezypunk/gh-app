@@ -29,6 +29,7 @@ Implemented:
 - `gh-app version`
 - `gh-app auth list`
 - `gh-app auth login`, `status`, `token`, `refresh`, `logout`, and `setup-git`
+- interactive login prompts and OS keyring storage
 - `gh` passthrough with installation-token injection
 - `git-credential-gh-app` helper with authtype and legacy output
 - `gh-app setup` shim installation and git configuration
@@ -36,7 +37,6 @@ Implemented:
 
 Not implemented yet:
 
-- interactive prompts, keyring storage, and installation discovery prompts
 - published release artifacts (the release workflow is present but not run)
 
 ## Build

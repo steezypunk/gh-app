@@ -5,6 +5,8 @@ use crate::config::io::load;
 use crate::config::permissions::read_private_key;
 use crate::config::schema::KeySourceKind;
 use crate::error::Result;
+use crate::key::Signer;
+use crate::keyring_store;
 use crate::paths;
 
 pub fn run(args: DoctorArgs) -> Result<i32> {
@@ -53,10 +55,29 @@ pub fn run(args: DoctorArgs) -> Result<i32> {
                 }
             }
             Ok(KeySourceKind::Keyring) => {
-                println!("  key: keyring (not checked in this milestone)");
+                let value = host_config
+                    .private_key_keyring
+                    .as_deref()
+                    .unwrap_or_default();
+                match keyring_store::load(value).and_then(|pem| Signer::from_pem(&pem)) {
+                    Ok(signer) => println!("  key: ok (keyring {}, {} bits)", value, signer.bits()),
+                    Err(error) => {
+                        println!("  key: FAIL (keyring {value})");
+                        println!("    {error}");
+                        failures += 1;
+                    }
+                }
             }
             Ok(KeySourceKind::Env) => {
-                println!("  key: environment variable (not checked in this milestone)");
+                let name = host_config.private_key_env.as_deref().unwrap_or_default();
+                match Signer::from_env(name) {
+                    Ok(signer) => println!("  key: ok (env {name}, {} bits)", signer.bits()),
+                    Err(error) => {
+                        println!("  key: FAIL (env {name})");
+                        println!("    {error}");
+                        failures += 1;
+                    }
+                }
             }
             Ok(KeySourceKind::Command) => {
                 println!("  key: external command (not checked in this milestone)");

@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: core product and docs implemented; interactive UX and release publishing remain
+Status: core product, interactive UX, and docs implemented; release publishing remains
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Current progress
@@ -12,15 +12,15 @@ Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 - M2 key loading, JWT signing, API client, token minting, and token cache:
   complete, including 401 clock-skew retry and 429/5xx backoff.
 - M3 `auth login`, `status`, `token`, `refresh`, `logout`, and non-interactive
-  installation discovery: complete. Interactive prompts and keyring storage are
-  deferred.
+  installation discovery: complete, including interactive prompts, installation
+  selection, and keyring storage.
 - M4 real `gh` discovery, token injection, auth redirection, and shim setup:
   complete, including strict/fallback/no-cache switches and git remote host
   inference.
 - M4.5 git credential helper and `auth setup-git`: complete.
 - M4.6 install, security, troubleshooting, and bot-limit docs: complete.
-- Release workflows and local static builds: present. Published artifacts,
-  interactive prompts, and keyring remain.
+- Release workflows and local static builds: present. Published artifacts
+  remain.
 
 ## Goal
 
@@ -185,8 +185,8 @@ Result:
 - Key copy, 0600 enforcement, config save, token cache, status text/JSON,
   token output, refresh, and logout are implemented.
 - Mock API test covers the full login-to-logout flow.
-- Interactive prompts, installation selection menus, keyring, and git config
-  cleanup (`auth setup-git`) remain pending.
+- Interactive prompts, installation selection, keyring, and `auth setup-git`
+  are implemented.
 
 ## M4: gh shadowing (core complete)
 

@@ -12,9 +12,11 @@ use crate::config::io::{load, load_required, save};
 use crate::config::permissions::{ensure_dir_700, read_private_key};
 use crate::config::schema::{Config, HostConfig, KeySourceKind};
 use crate::error::{Error, Result};
+use crate::github::models::Installation;
 use crate::github::{GitHubClient, HostInfo, MintRequest};
 use crate::jwt;
 use crate::key::Signer;
+use crate::keyring_store;
 use crate::paths;
 use crate::token;
 
@@ -63,28 +65,37 @@ pub fn list() -> Result<i32> {
 }
 
 fn login(args: LoginArgs) -> Result<i32> {
-    if args.keyring {
+    if args.keyring && args.reference_key {
         return Err(Error::message(
-            "--keyring is not implemented in this milestone; use a 0600 key file",
+            "--keyring and --reference-key cannot be used together",
         ));
     }
 
     let config_path = paths::config_file()?;
     let mut config = load(&config_path)?;
-    let hostname = args
-        .hostname
-        .clone()
-        .or_else(|| env_string("GH_APP_HOST"))
-        .unwrap_or_else(|| config.settings.default_host.clone());
+    let hostname = match args.hostname.clone().or_else(|| env_string("GH_APP_HOST")) {
+        Some(hostname) => hostname,
+        None if io::stdin().is_terminal() => {
+            prompt("GitHub hostname", Some(&config.settings.default_host))?
+        }
+        None => config.settings.default_host.clone(),
+    };
     let api_url = args
         .api_url
         .clone()
         .or_else(|| env_string("GH_APP_API_URL"));
     let host = HostInfo::new(&hostname)?.with_api_url(api_url.as_deref())?;
-    let app_id = args
-        .app_id
-        .or(env_u64("GH_APP_APP_ID")?)
-        .ok_or_else(|| Error::message("app id is required: --app-id or GH_APP_APP_ID"))?;
+    let app_id = match args.app_id.or(env_u64("GH_APP_APP_ID")?) {
+        Some(app_id) => app_id,
+        None if io::stdin().is_terminal() => prompt("GitHub App ID", None)?
+            .parse::<u64>()
+            .map_err(|_| Error::message("app ID must be an integer"))?,
+        None => {
+            return Err(Error::message(
+                "app id is required: --app-id or GH_APP_APP_ID",
+            ));
+        }
+    };
 
     if config.hosts.contains_key(&hostname) && !args.force {
         return Err(Error::message(format!(
@@ -111,15 +122,7 @@ fn login(args: LoginArgs) -> Result<i32> {
         None => {
             let token = jwt::build(&signer, &issuer, jwt::unix_now()?)?;
             let installations = client.list_installations(&token)?;
-            match installations.as_slice() {
-                [installation] => installation.id,
-                _ => {
-                    return Err(Error::message(format!(
-                        "could not infer installation: found {}; pass --installation-id",
-                        installations.len()
-                    )));
-                }
-            }
+            select_installation(&installations)?
         }
     };
 
@@ -179,8 +182,16 @@ fn login(args: LoginArgs) -> Result<i32> {
         client_id,
         app_slug,
         account_login,
-        private_key: Some(stored.value.clone()),
-        private_key_keyring: None,
+        private_key: if stored.keyring {
+            None
+        } else {
+            Some(stored.value.clone())
+        },
+        private_key_keyring: if stored.keyring {
+            Some(stored.value.clone())
+        } else {
+            None
+        },
         private_key_env: None,
         private_key_command: None,
         api_url,
@@ -451,6 +462,11 @@ fn logout(args: LogoutArgs) -> Result<i32> {
                     let _ = fs::remove_file(&key_path);
                 }
             }
+            if host_config.key_source_kind() == Ok(KeySourceKind::Keyring)
+                && let Some(value) = &host_config.private_key_keyring
+            {
+                keyring_store::delete(value)?;
+            }
         }
         config.hosts.remove(hostname);
     }
@@ -496,6 +512,17 @@ fn read_key_input(
         let pem = read_private_key(&path)?;
         return Ok((Zeroizing::new(pem), Some(path)));
     }
+    if io::stdin().is_terminal() {
+        let value = prompt("Private key path", None)?;
+        if value == "-" {
+            return Err(Error::message(
+                "use --private-key - to read a key from stdin",
+            ));
+        }
+        let path = PathBuf::from(value);
+        let pem = read_private_key(&path)?;
+        return Ok((Zeroizing::new(pem), Some(path)));
+    }
 
     Err(Error::message(
         "private key is required: --private-key PATH, --private-key -, GH_APP_PRIVATE_KEY, or GH_APP_PRIVATE_KEY_PATH",
@@ -505,6 +532,7 @@ fn read_key_input(
 struct StoredKey {
     value: String,
     managed_path: Option<PathBuf>,
+    keyring: bool,
 }
 
 fn store_key(
@@ -514,6 +542,16 @@ fn store_key(
     pem: &[u8],
     source_path: Option<&Path>,
 ) -> Result<StoredKey> {
+    if args.keyring {
+        let value = keyring_store::default_value(hostname, app_id);
+        keyring_store::store(&value, pem)?;
+        return Ok(StoredKey {
+            value,
+            managed_path: None,
+            keyring: true,
+        });
+    }
+
     if args.reference_key {
         let source = source_path
             .ok_or_else(|| Error::message("--reference-key requires a key file path"))?;
@@ -521,6 +559,7 @@ fn store_key(
         return Ok(StoredKey {
             value: absolute.display().to_string(),
             managed_path: None,
+            keyring: false,
         });
     }
 
@@ -536,6 +575,7 @@ fn store_key(
         return Ok(StoredKey {
             value: relative,
             managed_path: None,
+            keyring: false,
         });
     }
     if destination.exists() && !args.force {
@@ -565,6 +605,7 @@ fn store_key(
     Ok(StoredKey {
         value: relative,
         managed_path: Some(destination),
+        keyring: false,
     })
 }
 
@@ -601,9 +642,14 @@ pub(crate) fn signer_for(host_config: &HostConfig) -> Result<Signer> {
                 .ok_or_else(|| Error::message("private key env name is missing"))?;
             Signer::from_env(name)
         }
-        KeySourceKind::Keyring => Err(Error::message(
-            "keyring storage is not implemented in this milestone",
-        )),
+        KeySourceKind::Keyring => {
+            let value = host_config
+                .private_key_keyring
+                .as_deref()
+                .ok_or_else(|| Error::message("keyring entry is missing"))?;
+            let pem = Zeroizing::new(keyring_store::load(value)?);
+            Signer::from_pem(&pem)
+        }
         KeySourceKind::Command => Err(Error::message(
             "private_key_command is not implemented in this milestone",
         )),
@@ -722,4 +768,60 @@ fn shell_quote(value: &str) -> String {
     } else {
         value.to_string()
     }
+}
+
+fn prompt(label: &str, default: Option<&str>) -> Result<String> {
+    match default {
+        Some(default) => print!("{label} [{default}]: "),
+        None => print!("{label}: "),
+    }
+    io::stdout()
+        .flush()
+        .map_err(|e| Error::message(format!("could not flush stdout: {e}")))?;
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .map_err(|e| Error::message(format!("could not read input: {e}")))?;
+    let value = input.trim();
+    if value.is_empty() {
+        default
+            .map(str::to_string)
+            .ok_or_else(|| Error::message(format!("{label} is required")))
+    } else {
+        Ok(value.to_string())
+    }
+}
+
+fn select_installation(installations: &[Installation]) -> Result<u64> {
+    if let [installation] = installations {
+        return Ok(installation.id);
+    }
+    if installations.is_empty() {
+        return Err(Error::message(
+            "the app has no installations; install it on GitHub first",
+        ));
+    }
+    if !io::stdin().is_terminal() {
+        return Err(Error::message(format!(
+            "found {} installations; pass --installation-id",
+            installations.len()
+        )));
+    }
+    println!("Multiple installations found:");
+    for (index, installation) in installations.iter().enumerate() {
+        println!(
+            "  {}. {} (installation {})",
+            index + 1,
+            installation.account.login,
+            installation.id
+        );
+    }
+    let value = prompt("Select installation", Some("1"))?;
+    let index = value
+        .parse::<usize>()
+        .map_err(|_| Error::message("installation selection must be a number"))?;
+    installations
+        .get(index.saturating_sub(1))
+        .map(|installation| installation.id)
+        .ok_or_else(|| Error::message("installation selection is out of range"))
 }

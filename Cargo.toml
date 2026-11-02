@@ -13,6 +13,7 @@ clap = { version = "4.6", features = ["derive"] }
 dirs = "6"
 http = "1"
 httpdate = "1"
+keyring = "4"
 libc = "0.2"
 ring = "0.17"
 rsa = { version = "0.9", features = ["pem"] }
