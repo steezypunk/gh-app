@@ -560,6 +560,11 @@ The helper must echo the `host` value exactly as Git sent it, including a
 non-default port. Configured hosts are matched after normalizing the default
 port, but the response keeps the original value.
 
+Git can call the helper more than once for the same authentication attempt and
+may include its own `authtype`, `credential`, `ephemeral`, and `wwwauth[]`
+fields on a later call. Treat every invocation as a fresh request, ignore
+unknown fields, and do not echo a credential supplied by the caller.
+
 Only `protocol=https` is accepted in v1. A test-only `GH_APP_ALLOW_HTTP=1`
 escape hatch can allow HTTP for local mock servers.
 
