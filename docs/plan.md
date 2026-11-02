@@ -275,8 +275,9 @@ troubleshooting, bot limitations, and SECURITY.md are present.
 - Tag and publish.
 
 CI and release workflows for both musl targets are in place. Local static
-x86_64 and aarch64 builds run. GitHub-hosted publication was not executed in
-this environment.
+x86_64 (5.8 MiB) and aarch64 (4.8 MiB) builds run, and `scripts/package.sh`
+produced checksum-verified tarballs for both. GitHub-hosted publication was not
+executed because this environment has no release remote or token.
 
 Cross-build note: scratch-only Rust targets and musl GCC toolchains were
 installed under the scratch directory. A dependency probe built as a static-pie

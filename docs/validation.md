@@ -569,7 +569,10 @@ cleanup.
   `gh-app version`; the aarch64 binary runs under qemu-aarch64.
 - CI and release workflows for both musl targets are present but were not run in
   this environment.
+- Local packaging produced x86_64 and aarch64 tarballs plus SHA256 files; both
+  checksums verified and each archive contains the `gh-app` binary.
 
-Not covered: `GH_APP_STRICT`, `GH_APP_FALLBACK`, `GH_APP_NO_CACHE`, full remote
-host inference, interactive prompts, keyring, retry policy, and published
-release artifacts.
+Not covered: real GitHub App installation acceptance, a full git HTTP flow using
+the installed helper binary, and GitHub-hosted release publication. Strict mode,
+no-cache, retry policy, keyring compile/runtime failure behavior, and remote
+host parsing are covered.

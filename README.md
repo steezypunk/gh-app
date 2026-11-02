@@ -48,6 +48,12 @@ cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```
 
+Package a built static binary:
+
+```sh
+./scripts/package.sh v0.1.0 x86_64-unknown-linux-musl
+```
+
 ## Quick start
 
 1. Create a GitHub App owned by the account or organization you want the bot to
