@@ -489,7 +489,7 @@ runtime environment.
 | Custom CA bundle | local CA accepted, default roots rejected | verified |
 | M1 config and paths | 21 unit tests plus 8 CLI tests | verified |
 | M1 static binaries | 1.1 MiB x86_64, 877 KiB aarch64, both executed | verified |
-| Key storage and permission model | permission checks implemented; keyring deferred | partial |
+| Key storage and permission model | file storage verified; no OS keyring on this host | partial |
 | Non-interactive auth login | mock API flow, key copy, config save | verified |
 | Token cache reuse and refresh | mock API mint-count assertions | verified |
 | Auth status text and JSON | mock flow and no-token assertion | verified |
