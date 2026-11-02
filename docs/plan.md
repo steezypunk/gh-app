@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: core product, interactive UX, and docs implemented; arm64 container emulation and release publishing remain
+Status: core product, interactive UX, docs, and v0.1.0 release complete; arm64 container emulation remains unvalidated
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Current progress
@@ -19,8 +19,8 @@ Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
   inference.
 - M4.5 git credential helper and `auth setup-git`: complete.
 - M4.6 install, security, troubleshooting, and bot-limit docs: complete.
-- Release workflows and local static builds: present. Published artifacts
-  remain.
+- Release workflows ran successfully and `v0.1.0` is published with static
+  x86_64 and aarch64 archives plus SHA256 files.
 
 ## Goal
 
@@ -265,7 +265,7 @@ Result:
 Result: README quick start, permissions, storage, environment variables,
 troubleshooting, bot limitations, and SECURITY.md are present.
 
-## M5: release (workflow present; publishing pending)
+## M5: release (v0.1.0 published)
 
 - Release profile: LTO, strip, panic abort, codegen units 1.
 - Cross build both musl targets.
@@ -275,11 +275,13 @@ troubleshooting, bot limitations, and SECURITY.md are present.
 - Add shell completions (optional, not implemented).
 - Tag and publish.
 
-CI and release workflows for both musl targets are in place. Local static
-x86_64 (5.8 MiB) and aarch64 (4.8 MiB) builds run, and `scripts/package.sh`
-produced portable, checksum-verified tarballs for both. Both archives were
-extracted and exercised on their target architecture. GitHub-hosted publication
-was not executed because this environment has no release remote or token.
+CI and release workflows for both musl targets ran successfully for tag
+`v0.1.0`. Local static x86_64 (5.8 MiB) and aarch64 (4.8 MiB) builds run, and
+`scripts/package.sh` produced portable, checksum-verified tarballs for both.
+Both archives were extracted and exercised on their target architecture. The
+GitHub release was published at
+<https://github.com/steezypunk/gh-app/releases/tag/v0.1.0>, and its four assets
+(two archives and two checksums) were downloaded and verified.
 
 Cross-build note: scratch-only Rust targets and musl GCC toolchains were
 installed under the scratch directory. The actual gh-app source was built for

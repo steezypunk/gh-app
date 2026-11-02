@@ -498,7 +498,7 @@ runtime environment.
 | git credential helper | legacy and authtype integration tests | verified |
 | auth setup-git | temp git config test | verified |
 | setup shim install | temp PATH and symlink test | verified |
-| Release workflows | present, not run in this environment | configured |
+| Release workflows | CI and release runs succeeded for v0.1.0 | verified |
 | 429 retry | local mock returns 429 then 201 | verified |
 | Strict mode | no-config strict failure test | verified |
 | No-cache mode | two token runs mint twice | verified |
@@ -592,14 +592,13 @@ git helper/config cleanup were not yet covered. Later sections cover them.
   clear no-default-store error.
 - The final static binaries are 5.8 MiB x86_64 and 4.8 MiB aarch64. Both run
   `gh-app version`; the aarch64 binary runs under qemu-aarch64.
-- CI and release workflows for both musl targets are present but were not run in
-  this environment.
+- CI and release workflows for both musl targets ran successfully on GitHub for
+  tag `v0.1.0`.
 - Local packaging produced x86_64 and aarch64 tarballs plus SHA256 files under
   `dist/`; both checksums verified and each archive contains the `gh-app`
   binary.
 
-Not covered: real GitHub App installation acceptance and GitHub-hosted release
-publication.
+Not covered: successful real GitHub App installation acceptance.
 
 ## 16. Final end-to-end interface validation
 
@@ -698,3 +697,16 @@ and the final musl artifacts:
   0644 key handling, plus `GH_APP_FORCE`, `GITHUB_TOKEN`, and GHES enterprise
   token precedence, logout helper cleanup, and `gh auth` login, logout, refresh,
   setup-git, and switch redirection.
+
+## 18. v0.1.0 release publication
+
+- `main` was pushed from `8ecd21b` to `d80b91f`.
+- Tag `v0.1.0` was created and pushed, triggering CI and the release workflow.
+- The `ci` runs for `main` and `v0.1.0` and the `release` run for `v0.1.0` all
+  completed successfully.
+- The published release is
+  <https://github.com/steezypunk/gh-app/releases/tag/v0.1.0>, with x86_64 and
+  aarch64 musl archives plus their SHA256 files.
+- All four release assets were downloaded. Both checksums verified, and the
+  extracted x86_64 binary ran directly while the aarch64 binary ran under
+  qemu-aarch64. Both reported `gh-app 0.1.0`.

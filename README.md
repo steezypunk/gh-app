@@ -35,9 +35,9 @@ Implemented:
 - `gh-app setup` shim installation and git configuration
 - `gh-app doctor` basic config and key checks
 
-Not implemented yet:
-
-- published release artifacts (the release workflow is present but not run)
+Release `v0.1.0` is published with static x86_64 and aarch64 musl archives and
+SHA256 files:
+<https://github.com/steezypunk/gh-app/releases/tag/v0.1.0>.
 
 ## Build
 
