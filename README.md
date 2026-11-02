@@ -101,6 +101,22 @@ gh auth token
 printf 'protocol=https\nhost=github.com\n\n' | git credential fill
 ```
 
+## Use gh-app in place of gh
+
+Normal gh commands can be run through `gh-app` directly:
+
+```sh
+gh-app pr list
+gh-app pr view 123
+gh-app issue create --title "..." --body "..."
+gh-app api repos/owner/repo
+```
+
+`gh-app auth`, `gh-app setup`, `gh-app doctor`, and `gh-app version` are
+implemented by gh-app. Every other first argument is passed to the real gh with
+the installation token injected. The `gh` shim is optional if you prefer to type
+`gh-app` explicitly.
+
 ## Storage
 
 | data | location | mode |

@@ -567,11 +567,13 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 42 unit tests and 23 CLI integration tests pass.
+- `cargo test`: 42 unit tests and 24 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - An explicit non-empty `GH_TOKEN` is preserved unchanged; an empty `GH_TOKEN`
   falls back to the app token.
+- `gh-app pr list` and `gh-app issue create ...` route to the real gh with all
+  arguments intact, while `auth`, `setup`, `doctor`, and `version` stay internal.
 - Static `--version` bypasses token minting.
 - `git-credential get` returns the legacy username/password form with
   `password_expiry_utc`.

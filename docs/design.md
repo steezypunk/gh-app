@@ -1,6 +1,6 @@
 # gh-app design
 
-Status: proposed, pre-implementation
+Status: implemented and released
 Date: 2026-11-02
 
 ## 1. Summary
@@ -17,7 +17,8 @@ It does three things:
    shortly before expiry.
 3. Acts as a multi-call binary:
    - installed as `gh` (symlink), it injects the token and executes the real gh
-   - installed as `gh-app`, it provides management commands
+   - installed as `gh-app`, it provides management commands and passes every
+     other command to the real gh with the token injected
    - used as `gh-app git-credential`, it implements the git credential helper
 
 No daemon or background service is required. The credential cache makes the
@@ -108,6 +109,8 @@ gh-app doctor [--offline] [--json]
 gh-app version
 gh-app git-credential get|store|erase
 gh-app gh <args...>            # explicit passthrough
+gh-app pr list                 # implicit gh passthrough
+gh-app issue create ...        # implicit gh passthrough
 gh-app auth git-credential ... # hidden compatibility alias
 ```
 
@@ -237,9 +240,9 @@ After installation, `hash -r` may be needed in the current shell.
 | basename | behavior |
 |---|---|
 | `gh` | passthrough mode |
-| `gh-app` | management CLI |
+| `gh-app` | management commands, otherwise passthrough mode |
 | `git-credential-gh-app` | git credential helper |
-| anything else | management CLI |
+| anything else | management commands, otherwise passthrough mode |
 
 This dispatch was validated with a static 417 KiB Rust prototype and real
 symlinks for `gh`, `gh-app`, and `git-credential-gh-app`.

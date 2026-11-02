@@ -757,6 +757,51 @@ fn gh_symlink_passthrough() {
 
 #[cfg(unix)]
 #[test]
+fn gh_app_passes_unknown_commands_to_real_gh() {
+    let dir = tempfile::tempdir().unwrap();
+    let fake_gh = dir.path().join("fake-gh");
+    fs::write(&fake_gh, "#!/bin/sh\nprintf 'fake-gh %s\\n' \"$*\"\n").unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&fake_gh, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    let mut cmd = command();
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GH_TOKEN", "explicit-token")
+        .env_remove("XDG_CONFIG_HOME")
+        .env_remove("GH_APP_STRICT")
+        .args(["pr", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("fake-gh pr list"));
+
+    let mut cmd = command();
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GH_TOKEN", "explicit-token")
+        .env_remove("XDG_CONFIG_HOME")
+        .env_remove("GH_APP_STRICT")
+        .args([
+            "issue",
+            "create",
+            "--title",
+            "hello world",
+            "--body",
+            "body text",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("fake-gh issue create"))
+        .stdout(predicate::str::contains("--title hello world"))
+        .stdout(predicate::str::contains("--body body text"));
+}
+
+#[cfg(unix)]
+#[test]
 fn gh_shim_injects_token_and_respects_explicit_tokens() {
     use std::os::unix::fs::symlink;
 

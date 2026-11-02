@@ -28,7 +28,14 @@ fn main() -> ExitCode {
     let result = match base.as_str() {
         "gh" => gh::run(std::env::args().skip(1).collect()),
         "git-credential-gh-app" => git_credential::run(std::env::args().skip(1).collect()),
-        _ => commands::dispatch(cli::Cli::parse()),
+        _ => {
+            let args: Vec<String> = std::env::args().skip(1).collect();
+            if args.first().is_none_or(|arg| is_gh_app_command(arg)) {
+                commands::dispatch(cli::Cli::parse())
+            } else {
+                gh::run(args)
+            }
+        }
     };
 
     match result {
@@ -38,6 +45,23 @@ fn main() -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+fn is_gh_app_command(arg: &str) -> bool {
+    matches!(
+        arg,
+        "auth"
+            | "setup"
+            | "doctor"
+            | "version"
+            | "gh"
+            | "git-credential"
+            | "help"
+            | "--help"
+            | "-h"
+            | "--version"
+            | "-V"
+    )
 }
 
 fn basename(argv0: &OsStr) -> String {
