@@ -127,11 +127,16 @@ fn target_host(args: &[String], config: &Config) -> String {
     if let Some(host) = flag_value(args, "--hostname") {
         return host.to_ascii_lowercase();
     }
-    if let Some(repo) = flag_value(args, "--repo").or_else(|| flag_value(args, "-R")) {
-        let parts: Vec<&str> = repo.split('/').collect();
-        if parts.len() >= 3 {
-            return parts[0].to_ascii_lowercase();
-        }
+    if let Some(repo) = flag_value(args, "--repo")
+        .or_else(|| flag_value(args, "-R"))
+        .or_else(|| {
+            std::env::var("GH_REPO")
+                .ok()
+                .filter(|value| !value.is_empty())
+        })
+        && let Some(host) = repo_host(&repo)
+    {
+        return host;
     }
     if let Some(host) = std::env::var("GH_HOST")
         .ok()
@@ -145,6 +150,17 @@ fn target_host(args: &[String], config: &Config) -> String {
         return host;
     }
     config.settings.default_host.clone()
+}
+
+fn repo_host(value: &str) -> Option<String> {
+    let mut parts = value.split('/');
+    let host = parts.next()?;
+    let owner = parts.next()?;
+    let repo = parts.next()?;
+    if host.is_empty() || owner.is_empty() || repo.is_empty() {
+        return None;
+    }
+    Some(host.to_ascii_lowercase())
 }
 
 fn git_remote_host() -> Option<String> {
@@ -281,5 +297,16 @@ mod tests {
             Some("ghe.example.com")
         );
         assert_eq!(parse_remote_host("not a url"), None);
+    }
+
+    #[test]
+    fn parses_repo_hosts() {
+        assert_eq!(
+            repo_host("ghe.example.com/owner/repo").as_deref(),
+            Some("ghe.example.com")
+        );
+        assert_eq!(repo_host("owner/repo"), None);
+        assert_eq!(repo_host("/owner/repo"), None);
+        assert_eq!(repo_host("host//repo"), None);
     }
 }

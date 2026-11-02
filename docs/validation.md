@@ -552,7 +552,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 40 unit tests and 14 CLI integration tests pass.
+- `cargo test`: 41 unit tests and 14 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - Static `--version` bypasses token minting.
@@ -569,6 +569,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 - `GH_APP_STRICT` fails when no host is configured.
 - `GH_APP_FALLBACK=1` executes the real gh when token minting fails.
 - Remote host parsing covers HTTPS, `ssh://`, and `git@host:path` forms.
+- `GH_REPO` host prefixes and empty or malformed repository values are handled.
 - Keyring support compiles into the static binary; headless runtime reports a
   clear no-default-store error.
 - The final static binaries are 5.8 MiB x86_64 and 4.8 MiB aarch64. Both run
