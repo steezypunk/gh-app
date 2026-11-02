@@ -163,7 +163,28 @@ Decision: use `ring` for RSA signing, `rsa` only for PEM parsing and PKCS#1 to
 PKCS#8 conversion, and `ureq` 3 with rustls/ring for HTTP. Implement JWT
 encoding directly, which is small and auditable.
 
-## 11. Sources
+## 11. Additional real-interface checks
+
+The full evidence is in `docs/validation.md`. The most important results:
+
+- A temporary `gh` shim that exports `GH_TOKEN` and `exec`s `/usr/bin/gh`
+  preserved auth token output, version output, help, and exit codes.
+- Real git with the real gh helper returned `x-access-token` and the env token.
+- An absolute git helper bypassed a PATH shim. A relative helper was resolved
+  through PATH. This proves gh-app must rewrite the helper path.
+- Git's real HTTP transport sent `capability[]=authtype` and accepted an opaque
+  `credential=` response, producing `Authorization: Basic ...`.
+- `git credential fill` did not send the capability. A helper that emitted the
+  authtype form unconditionally lost the password. The helper must branch.
+- `git credential approve` calls the helper as `store`, and `reject` calls it
+  as `erase`, both with credential fields on stdin.
+- The selected ureq 3 plus rustls plus ring dependency stack compiled, and did
+  not pull `aws-lc-rs`.
+- Static musl and aarch64 builds could not be run in this environment because
+  the rustup home is read-only and no cross toolchain is installed. This remains
+  a CI release gate.
+
+## 12. Sources
 
 - gh credential helper source:
   https://github.com/cli/cli/blob/trunk/pkg/cmd/auth/gitcredential/helper.go

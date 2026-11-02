@@ -1,7 +1,7 @@
 # Implementation plan
 
 Status: proposed, not started
-Companion docs: `docs/design.md`, `docs/research.md`
+Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Goal
 
@@ -46,6 +46,22 @@ Acceptance:
 - `cargo run -- --version` works.
 - `cargo test` and `cargo clippy -- -D warnings` pass.
 - Path tests cover Linux XDG, `GH_APP_CONFIG_DIR`, and Windows fallback.
+
+## M0.5: design validation (completed)
+
+- Real gh shim test with `GH_TOKEN` and `exec`.
+- Real git credential fill with the real gh helper.
+- Absolute versus relative helper path test.
+- Real git HTTP 401 test for `capability[]=authtype`.
+- Real git approve/reject test for store/erase.
+- RS256 JWT signature verified by OpenSSL.
+- Mock installation-token endpoint test with ureq.
+- Dependency stack compiled and checked for `aws-lc-rs`.
+- Static musl and aarch64 builds attempted and recorded as blocked by the
+  environment.
+
+Acceptance: evidence recorded in `docs/validation.md`, including the limitation
+that real installation-token and static cross-build checks are release gates.
 
 ## M1.5: config and permissions
 
@@ -141,6 +157,9 @@ Acceptance:
 - Capability request returns `ephemeral=1` and base64 credential.
 - Unknown host falls through with no output.
 - `credential.https://github.com.helper` is exactly the expected command.
+- `git credential fill` without `capability[]=authtype` receives the legacy
+  username/password form.
+- A real git HTTP 401 flow receives the authtype form and sends Basic auth.
 - No token appears in stderr or logs.
 
 ## M4.6: docs
@@ -161,6 +180,11 @@ Acceptance:
 - Generate SHA256SUMS.
 - Add shell completions.
 - Tag and publish.
+
+Cross-build note: static musl and aarch64 builds could not be run in the design
+environment because the toolchain is root-owned, no musl or aarch64 compiler is
+installed, and there is no Docker, `cross`, or passwordless sudo. CI must be the
+release gate for these artifacts.
 
 ## Test matrix
 

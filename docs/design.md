@@ -517,6 +517,12 @@ The token is never parsed or length-checked. GitHub is rolling out a stateless
 `gh-app git-credential get` reads the standard input format, including `url=`
 and `capability[]=authtype`, and writes a credential to stdout.
 
+Git's HTTP transport advertises `capability[]=authtype` (verified with git
+2.47.3 against a real 401 response). `git credential fill` does not. The helper
+must branch on the capability: if it emits the authtype form when the caller did
+not offer the capability, Git silently drops the credential and keeps no
+password. This is a required behavior, not an optimization.
+
 For a configured host:
 
 ```text
@@ -549,6 +555,10 @@ delete the app credential through the helper.
 Unknown hosts produce no output and exit 0, allowing other helpers to answer.
 A configured host that fails to mint prints a sanitized error to stderr and
 exits 1. The token is never printed to stderr.
+
+The helper must echo the `host` value exactly as Git sent it, including a
+non-default port. Configured hosts are matched after normalizing the default
+port, but the response keeps the original value.
 
 Only `protocol=https` is accepted in v1. A test-only `GH_APP_ALLOW_HTTP=1`
 escape hatch can allow HTTP for local mock servers.
@@ -862,7 +872,9 @@ Optional real-API test, gated by `GH_APP_E2E=1` and real credentials:
 
 ### M0: design and research (this document)
 
-Acceptance: storage, crypto, host behavior, and compatibility decisions agreed.
+Acceptance: storage, crypto, host behavior, and compatibility decisions agreed,
+and the real-interface evidence in `docs/validation.md` recorded. Real
+installation-token and static cross-build checks remain release gates.
 
 ### M1: scaffold and config
 
