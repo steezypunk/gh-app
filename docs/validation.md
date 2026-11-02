@@ -513,6 +513,8 @@ runtime environment.
 | Static dependency closure | no NEEDED entries or interpreter | verified |
 | Release-binary JWT signature | x86_64 and aarch64 verified by OpenSSL | verified |
 | Final-binary env precedence | GH_TOKEN, GITHUB_TOKEN, enterprise, force | verified |
+| Final-binary CONNECT proxy | proxy saw expected host and origin minted | verified |
+| Final-binary custom CA | custom root accepted, default roots reject | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -666,6 +668,11 @@ and the final musl artifacts:
   overrides an explicit `GH_TOKEN`, `GITHUB_TOKEN` does not block the app token,
   and explicit `GH_ENTERPRISE_TOKEN` is preserved for a GHES host while its
   absence injects the app token.
+- Network path with the final binary: a local CONNECT proxy saw
+  `example.invalid:80` and tunneled the request to a local origin, which minted
+  the token. A local CA supplied through `ca_bundle` was accepted, while the
+  same HTTPS endpoint without the bundle failed with
+  `invalid peer certificate: UnknownIssuer`.
 - Permanent regressions added for unknown host, HTTP blocking, 0644 config, and
   0644 key handling, plus `GH_APP_FORCE`, `GITHUB_TOKEN`, and GHES enterprise
   token precedence.
