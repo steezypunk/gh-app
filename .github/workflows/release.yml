@@ -1,0 +1,50 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@cross
+      - name: Build
+        run: cross build --release --locked --target ${{ matrix.target }}
+      - name: Package
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/gh-app" dist/gh-app
+          tar -C dist -czf "gh-app-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" gh-app
+          sha256sum "gh-app-${{ github.ref_name }}-${{ matrix.target }}.tar.gz" > "gh-app-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gh-app-${{ matrix.target }}
+          path: |
+            gh-app-*.tar.gz
+            gh-app-*.tar.gz.sha256
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*

@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: M1 scaffold implemented; M2 next
+Status: core product implemented; docs, prompts, retries, and release publishing remain
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Current progress
@@ -9,10 +9,17 @@ Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 - M0.5 interface, crypto, packaging, proxy, and TLS validation: complete.
 - M1 scaffold, paths, config, permissions, `auth list`, `version`, and basic
   `doctor`: complete.
-- M2 key loading, JWT signing, API client, and token cache: next.
-- `auth login`, `auth status`, `auth token`, `auth refresh`, `auth logout`,
-  `auth setup-git`, `setup`, real `gh` passthrough, and the real git helper are
-  still stubs.
+- M2 key loading, JWT signing, API client, token minting, and token cache:
+  complete except 401/429/5xx retry logic.
+- M3 `auth login`, `status`, `token`, `refresh`, `logout`, and non-interactive
+  installation discovery: complete. Interactive prompts and keyring storage are
+  deferred.
+- M4 real `gh` discovery, token injection, auth redirection, and shim setup:
+  core complete. Strict/fallback/no-cache switches and full remote inference are
+  not implemented.
+- M4.5 git credential helper and `auth setup-git`: complete.
+- Release workflows and local static builds: present. Published artifacts and
+  interactive UX remain.
 
 ## Goal
 
@@ -119,7 +126,7 @@ Acceptance:
 Result: all acceptance checks are covered by unit tests, including unknown-field
 preservation and key permission rejection.
 
-## M2: key, JWT, API, cache
+## M2: key, JWT, API, cache (core complete)
 
 - Key loading from file, env, keyring feature.
 - PKCS#1 and PKCS#8 PEM parsing.
@@ -142,7 +149,17 @@ Acceptance:
 - 401 triggers one retry, 403 does not retry, 429 retries with backoff.
 - Cache file is 0600 and corrupt cache is treated as a miss.
 
-## M3: auth commands
+Result:
+
+- Key loading, fingerprints, JWT encoding, API calls, token minting, cache
+  locking, and atomic 0600 writes are implemented.
+- Tests cover PKCS#1/PKCS#8, 1024-bit rejection, JWT claims and signature
+  length, cache key stability, scope hashing, and token masking.
+- Mock API integration confirms login minting, cache reuse, refresh, status
+  verification, and cache file mode.
+- Clock-skew, 429, and 5xx retry logic remains pending.
+
+## M3: auth commands (core complete)
 
 - `auth login` interactive and non-interactive.
 - Installation discovery when ID is omitted.
@@ -160,7 +177,17 @@ Acceptance:
 - `auth status --json` contains no token and no key contents.
 - `auth logout --yes` removes config, key, cache, and git entries.
 
-## M4: gh shadowing
+Result:
+
+- Non-interactive login with explicit app ID, installation ID, key path, API
+  URL, and `--no-verify` works.
+- Key copy, 0600 enforcement, config save, token cache, status text/JSON,
+  token output, refresh, and logout are implemented.
+- Mock API test covers the full login-to-logout flow.
+- Interactive prompts, installation selection menus, keyring, and git config
+  cleanup (`auth setup-git`) remain pending.
+
+## M4: gh shadowing (core complete)
 
 - Real gh discovery with `GH_APP_REAL_GH`, saved path, PATH scan.
 - Inode/canonical-path recursion guard.
@@ -180,7 +207,18 @@ Acceptance:
 - A second `gh` invocation uses the cached token.
 - Recursion guard errors instead of looping.
 
-## M4.5: git credential helper
+Result:
+
+- Real gh discovery, PATH scanning, self-inode skipping, static-command fast
+  path, token injection, auth command redirection, and shim installation are
+  implemented.
+- Tests use a fake real gh and assert token injection and exit behavior.
+- `gh --version` does not touch the network.
+- `GH_APP_STRICT`, `GH_APP_FALLBACK`, and `GH_APP_NO_CACHE` are not implemented.
+- Target host inference covers explicit flags, `GH_HOST`, and the default host;
+  full git-remote inference is future work.
+
+## M4.5: git credential helper (complete)
 
 - Parse `get`, `store`, `erase`.
 - Parse `url=`, `protocol`, `host`, `path`, `username`, `capability[]`.
@@ -202,6 +240,15 @@ Acceptance:
   username/password form.
 - A real git HTTP 401 flow receives the authtype form and sends Basic auth.
 - No token appears in stderr or logs.
+
+Result:
+
+- The helper parses `get`, `store`, `erase`, `url=`, `host`, `protocol`, and
+  `capability[]`.
+- Legacy and authtype outputs are implemented, including `ephemeral=1` and
+  `password_expiry_utc`.
+- Integration tests assert both output forms, and `auth setup-git` writes the
+  blank reset plus absolute helper command.
 
 ## M4.6: docs
 

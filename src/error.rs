@@ -18,6 +18,9 @@ pub enum Error {
 
     #[error("invalid configuration: {0}")]
     InvalidConfig(String),
+
+    #[error("GitHub API error (HTTP {status}): {message}")]
+    Api { status: u16, message: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -39,5 +42,13 @@ impl Error {
 
     pub fn message(message: impl Into<String>) -> Self {
         Self::Message(message.into())
+    }
+
+    pub fn api(status: u16, message: impl Into<String>, request_id: Option<String>) -> Self {
+        let message = match request_id {
+            Some(request_id) => format!("{} (request id: {request_id})", message.into()),
+            None => message.into(),
+        };
+        Self::Api { status, message }
     }
 }

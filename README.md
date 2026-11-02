@@ -23,16 +23,22 @@ Implemented:
 - TOML config schema with unknown-field preservation
 - config load/save with 0600 atomic writes
 - private key permission checks with `O_NOFOLLOW`
+- PKCS#1/PKCS#8 key loading and RS256 JWT signing
+- GitHub API client with proxy and custom CA support
+- installation-token minting with a locked, 0600 token cache
 - `gh-app version`
 - `gh-app auth list`
+- `gh-app auth login`, `status`, `token`, `refresh`, `logout`, and `setup-git`
+- `gh` passthrough with installation-token injection
+- `git-credential-gh-app` helper with authtype and legacy output
+- `gh-app setup` shim installation and git configuration
 - `gh-app doctor` basic config and key checks
 
 Not implemented yet:
 
-- GitHub App JWT signing and installation-token minting
-- `auth login`, `status`, `token`, `refresh`, `logout`, `setup-git`
-- real `gh` passthrough and git credential helper
-- `setup` and release artifacts
+- interactive prompts, keyring storage, and installation discovery prompts
+- clock-skew, 429, and 5xx retry policy
+- published release artifacts (the release workflow is present but not run)
 
 ## Build
 

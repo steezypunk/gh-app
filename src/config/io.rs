@@ -85,6 +85,7 @@ mod tests {
             private_key_env: None,
             private_key_command: None,
             api_url: None,
+            ca_bundle: None,
             repositories: None,
             permissions: None,
             extra: BTreeMap::new(),

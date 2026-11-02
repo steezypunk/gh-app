@@ -8,7 +8,13 @@ mod cli;
 mod commands;
 mod config;
 mod error;
+mod gh;
+mod git_credential;
+mod github;
+mod jwt;
+mod key;
 mod paths;
+mod token;
 
 fn main() -> ExitCode {
     #[cfg(unix)]
@@ -19,8 +25,8 @@ fn main() -> ExitCode {
     let argv0 = std::env::args_os().next().unwrap_or_default();
     let base = basename(&argv0);
     let result = match base.as_str() {
-        "gh" => commands::gh(std::env::args().skip(1).collect()),
-        "git-credential-gh-app" => commands::git_credential(std::env::args().skip(1).collect()),
+        "gh" => gh::run(std::env::args().skip(1).collect()),
+        "git-credential-gh-app" => git_credential::run(std::env::args().skip(1).collect()),
         _ => commands::dispatch(cli::Cli::parse()),
     };
 

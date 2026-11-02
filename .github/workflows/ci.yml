@@ -18,3 +18,21 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
       - name: Test
         run: cargo test --all-targets
+
+  cross:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@cross
+      - name: Build static binary
+        run: cross build --release --locked --target ${{ matrix.target }}
+      - name: Smoke test version
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: target/${{ matrix.target }}/release/gh-app version

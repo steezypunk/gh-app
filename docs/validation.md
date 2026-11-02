@@ -490,7 +490,15 @@ runtime environment.
 | M1 config and paths | 21 unit tests plus 8 CLI tests | verified |
 | M1 static binaries | 1.1 MiB x86_64, 877 KiB aarch64, both executed | verified |
 | Key storage and permission model | permission checks implemented; keyring deferred | partial |
-| gh-app auth login UX | design only | not implemented |
+| Non-interactive auth login | mock API flow, key copy, config save | verified |
+| Token cache reuse and refresh | mock API mint-count assertions | verified |
+| Auth status text and JSON | mock flow and no-token assertion | verified |
+| Auth logout cleanup | key and config removal test | verified |
+| gh passthrough token injection | fake real gh test | verified |
+| git credential helper | legacy and authtype integration tests | verified |
+| auth setup-git | temp git config test | verified |
+| setup shim install | temp PATH and symlink test | verified |
+| Release workflows | present, not run in this environment | configured |
 
 ## 13. M1 scaffold validation
 
@@ -511,3 +519,46 @@ The first implementation milestone was built and exercised:
 
 This validates the scaffold, config boundary, and packaging, not the GitHub App
 authentication flow.
+
+## 14. M2/M3 auth flow validation
+
+The key, JWT, API, cache, and auth command layer was implemented and tested:
+
+- `cargo test`: 34 unit tests and 10 CLI integration tests pass.
+- A mock GitHub API verifies `GET /app`, `GET /app/installations/{id}`,
+  `POST /app/installations/{id}/access_tokens`, and
+  `GET /installation/repositories`.
+- Login mints once, stores the token cache at 0600, and prints the app,
+  installation, account, key fingerprint, token expiry, and repository count.
+- Two `auth token` runs reuse the cached token; the mock mint count stays at 1.
+- `auth refresh` mints again and increments the count to 2.
+- `auth status --verify` mints again and increments the count to 3.
+- `auth status --json` contains only the masked token, not the raw token.
+- `auth logout --yes` removes the managed key and host config.
+- Static M2 binaries built: 3.5 MiB x86_64 and 2.9 MiB aarch64, both ran
+  `version`. The x86_64 binary is static-pie; the aarch64 binary is static.
+
+Not covered: interactive prompts, keyring storage, actual GitHub App
+installation acceptance, retry behavior for 401/429/5xx, and git helper/config
+cleanup.
+
+## 15. M4/M4.5 and final packaging validation
+
+- `cargo test`: 37 unit tests and 12 CLI integration tests pass.
+- A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
+  injection and exec behavior.
+- Static `--version` bypasses token minting.
+- `git-credential get` returns the legacy username/password form with
+  `password_expiry_utc`.
+- A capability request returns `authtype=Basic`, a base64 credential, and
+  `ephemeral=1`.
+- `auth setup-git` writes the blank reset and an absolute helper command.
+- `setup` creates the `gh` symlink and checks PATH ordering.
+- The final static binaries are 3.8 MiB x86_64 and 3.1 MiB aarch64. Both run
+  `gh-app version`; the aarch64 binary runs under qemu-aarch64.
+- CI and release workflows for both musl targets are present but were not run in
+  this environment.
+
+Not covered: `GH_APP_STRICT`, `GH_APP_FALLBACK`, `GH_APP_NO_CACHE`, full remote
+host inference, interactive prompts, keyring, retry policy, and published
+release artifacts.

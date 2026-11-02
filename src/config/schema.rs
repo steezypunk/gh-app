@@ -95,6 +95,8 @@ pub struct HostConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub api_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ca_bundle: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repositories: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub permissions: Option<BTreeMap<String, String>>,
@@ -215,6 +217,7 @@ mod tests {
             private_key_env: None,
             private_key_command: None,
             api_url: None,
+            ca_bundle: None,
             repositories: None,
             permissions: None,
             extra: BTreeMap::new(),
