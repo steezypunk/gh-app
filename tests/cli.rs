@@ -608,6 +608,97 @@ fn gh_auth_login_and_logout_redirect() {
 
 #[cfg(unix)]
 #[test]
+fn gh_auth_refresh_and_setup_git_redirect() {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+
+    let server = MockGitHub::start();
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("keys")).unwrap();
+    write_test_key(&dir.path().join("keys/github.com-123.pem"));
+    let config_path = dir.path().join("config.toml");
+    fs::write(
+        &config_path,
+        format!(
+            r#"
+version = 1
+
+[hosts."github.com"]
+app_id = 123
+installation_id = 456
+private_key = "keys/github.com-123.pem"
+api_url = "{}"
+"#,
+            server.base
+        ),
+    )
+    .unwrap();
+    fs::set_permissions(&config_path, fs::Permissions::from_mode(0o600)).unwrap();
+
+    let marker = dir.path().join("real-gh-ran");
+    let fake_gh = dir.path().join("fake-gh");
+    fs::write(
+        &fake_gh,
+        format!("#!/bin/sh\ntouch '{}'\nexit 41\n", marker.display()),
+    )
+    .unwrap();
+    fs::set_permissions(&fake_gh, fs::Permissions::from_mode(0o755)).unwrap();
+    let link = dir.path().join("gh");
+    symlink(assert_cmd::cargo::cargo_bin("gh-app"), &link).unwrap();
+    let gitconfig = dir.path().join(".gitconfig");
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["auth", "setup-git", "-h", "github.com"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Configured git credential helper"));
+    assert!(!marker.exists());
+
+    let output = std::process::Command::new("git")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .args([
+            "config",
+            "--global",
+            "--get-all",
+            "credential.https://github.com.helper",
+        ])
+        .output()
+        .unwrap();
+    assert!(String::from_utf8_lossy(&output.stdout).contains("git-credential"));
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env_remove("GH_TOKEN")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["auth", "refresh", "--hostname", "github.com"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Refreshed github.com"));
+    assert_eq!(server.mint_count(), 1);
+    assert!(!marker.exists());
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["auth", "switch"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not supported"));
+    assert!(!marker.exists());
+}
+
+#[cfg(unix)]
+#[test]
 fn setup_installs_shim() {
     let dir = tempfile::tempdir().unwrap();
     let shim_dir = dir.path().join("bin");

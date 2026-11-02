@@ -518,6 +518,7 @@ runtime environment.
 | Final-binary retry policy | 429, 500, and 401 clock skew retried once | verified |
 | Final-binary refresh skew | near-expiry cached token reminted | verified |
 | gh auth login/logout redirect | internal commands ran, real gh skipped | verified |
+| gh auth refresh/setup-git redirect | internal commands and -h mapping pass | verified |
 | Logout git helper cleanup | removed by default, kept with flag | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
@@ -566,7 +567,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 42 unit tests and 22 CLI integration tests pass.
+- `cargo test`: 42 unit tests and 23 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - An explicit non-empty `GH_TOKEN` is preserved unchanged; an empty `GH_TOKEN`
@@ -689,7 +690,11 @@ and the final musl artifacts:
   commands and never executed the fake real gh. Login wrote the host config,
   logout removed it, and logout removed the host git helper entries by default
   while `--keep-git-config` preserved them.
+- `gh auth setup-git -h github.com` mapped `-h` to `--hostname`, wrote the helper
+  config, and did not run the fake real gh. `gh auth refresh` minted through the
+  internal command, and `gh auth switch` failed with the documented unsupported
+  message instead of invoking real gh.
 - Permanent regressions added for unknown host, HTTP blocking, 0644 config, and
   0644 key handling, plus `GH_APP_FORCE`, `GITHUB_TOKEN`, and GHES enterprise
-  token precedence, logout helper cleanup, and `gh auth login`/`logout`
-  redirection.
+  token precedence, logout helper cleanup, and `gh auth` login, logout, refresh,
+  setup-git, and switch redirection.
