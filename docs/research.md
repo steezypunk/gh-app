@@ -205,6 +205,9 @@ The full evidence is in `docs/validation.md`. The most important results:
   named `gh`, `gh-app`, and `git-credential-gh-app`.
 - The optional `keyring` 4.2 feature compiled static (4.6 MiB) but reported no
   default store on the headless host, confirming file fallback is required.
+- `ureq` honored proxy environment variables and tunneled through CONNECT.
+- A custom CA root was accepted while the same local certificate failed against
+  the bundled webpki roots, validating the enterprise CA path.
 
 ## 12. Sources
 

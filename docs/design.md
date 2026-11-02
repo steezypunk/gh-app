@@ -807,6 +807,11 @@ One `ureq::Agent` per process with:
 - `User-Agent: gh-app/<version>`
 - retry policy only for 429 and 5xx
 
+Proxy-from-environment and a custom CA bundle were both validated with local
+servers. ureq proxies through CONNECT, so corporate proxies must permit CONNECT
+to the GitHub API host. Default roots rejected a local test CA with
+`UnknownIssuer`; supplying the CA root produced HTTP 200.
+
 No async runtime is needed, which keeps the static binary smaller and makes
 `exec` straightforward.
 

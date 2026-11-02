@@ -396,6 +396,30 @@ This confirms two things:
 - Linux keyring storage needs a working Secret Service. If it is unavailable,
   `--keyring` must fail clearly and file storage remains the fallback.
 
+## 9.7 Proxy support
+
+`ureq` was configured with `Proxy::try_from_env` and pointed at a local proxy
+through `HTTP_PROXY`. The proxy observed `CONNECT example.test:80`, then the
+tunneled `GET /path`, and returned a marker body. The probe exited 0 with
+`proxy_found=true`.
+
+This confirms environment proxy support. It also shows that ureq uses CONNECT
+for proxied requests, so an HTTP proxy must permit CONNECT to the target host
+and port.
+
+## 9.8 Custom CA
+
+A local test CA and leaf certificate for `localhost` were created. The same
+probe was run against one local HTTPS server in two trust configurations:
+
+| trust configuration | result |
+|---|---|
+| bundled webpki roots only | rejected, `UnknownIssuer` |
+| custom root supplied with `RootCerts::new_with_certs` | HTTP 200, `tls-ok` |
+
+This validates the planned `--cacert` and `GH_APP_CA_BUNDLE` path for
+enterprise TLS inspection and private GHES certificate authorities.
+
 ## 10. Constraints and blocked checks
 
 These acceptance paths were not executed:
@@ -459,5 +483,7 @@ runtime environment.
 | Key permission checks | x86_64 and aarch64 static prototype | verified |
 | Token cache locking | eight-process static prototype | verified |
 | Optional keyring feature | static build succeeds, headless store unavailable | verified |
+| HTTP proxy support | local CONNECT proxy test | verified |
+| Custom CA bundle | local CA accepted, default roots rejected | verified |
 | Key storage and permission model | design only | not implemented |
 | gh-app auth login UX | design only | not implemented |

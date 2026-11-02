@@ -66,6 +66,8 @@ Acceptance:
   files mode 0600.
 - Optional keyring feature compiles static; headless runtime reports no default
   store.
+- HTTP proxy from environment and custom CA bundle validated against local
+  servers.
 - RS256 JWT verified for 2048/4096 PKCS#1, 2048 PKCS#8, and 1024 rejection.
 - Mock installation-token endpoint test with ureq.
 - Real GitHub token endpoint error shape with a fake app.
