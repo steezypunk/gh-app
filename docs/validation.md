@@ -505,6 +505,7 @@ runtime environment.
 | Remote host parsing | https, ssh, and git@ forms | verified |
 | Real git HTTPS through setup-git | 401 server received expected Basic auth | verified |
 | Real git HTTP with host:port | helper matched and 401 retry succeeded | verified |
+| Final archive extraction | both binaries run, auth login/list/doctor pass | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -608,4 +609,9 @@ Additional checks were run with the actual built binary:
   `No default store has been set`, exit 1, and no partial config.
 - The aarch64 static binary completed `auth login --no-verify` and `auth list`
   under qemu-aarch64, including key copy and config creation.
+- Both final release archives were extracted and checked from `dist/`. The
+  x86_64 binary is static-pie and the aarch64 binary is static. `auth login
+  --no-verify`, `auth list`, and `doctor --offline` passed for the extracted
+  x86_64 artifact and for the extracted aarch64 artifact under qemu-aarch64,
+  each with an isolated config, cache, and HOME.
 - The final static sizes are 5.8 MiB (x86_64) and 4.8 MiB (aarch64).
