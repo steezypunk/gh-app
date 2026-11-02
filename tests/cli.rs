@@ -533,6 +533,73 @@ fn gh_symlink_passthrough() {
 
 #[cfg(unix)]
 #[test]
+fn gh_shim_injects_token_and_respects_explicit_tokens() {
+    use std::os::unix::fs::symlink;
+
+    let server = MockGitHub::start();
+    let dir = tempfile::tempdir().unwrap();
+    write_config(dir.path());
+    fs::create_dir_all(dir.path().join("keys")).unwrap();
+    write_test_key(&dir.path().join("keys/github.com-123.pem"));
+    let mut config = fs::OpenOptions::new()
+        .append(true)
+        .open(dir.path().join("config.toml"))
+        .unwrap();
+    writeln!(config, "api_url = \"{}\"", server.base).unwrap();
+
+    let fake_gh = dir.path().join("fake-gh");
+    fs::write(
+        &fake_gh,
+        "#!/bin/sh\nprintf '%s\\n' \"${GH_TOKEN-unset}\"\n",
+    )
+    .unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&fake_gh, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let link = dir.path().join("gh");
+    symlink(assert_cmd::cargo::cargo_bin("gh-app"), &link).unwrap();
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env_remove("GH_TOKEN")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["api", "user"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ghs_test_token"));
+    assert_eq!(server.mint_count(), 1);
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GH_TOKEN", "explicit-token")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["api", "user"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("explicit-token"));
+    assert_eq!(server.mint_count(), 1);
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GH_TOKEN", "")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["api", "user"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ghs_test_token"));
+    assert_eq!(server.mint_count(), 1);
+}
+
+#[cfg(unix)]
+#[test]
 fn gh_symlink_strict_without_config() {
     use std::os::unix::fs::symlink;
 

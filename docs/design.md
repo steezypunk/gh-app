@@ -292,7 +292,7 @@ For commands that are not intercepted:
    - `settings.default_host`
 3. If no gh-app credential exists for that host, execute gh unchanged. With
    `GH_APP_STRICT=1`, error instead.
-4. If an explicit `GH_TOKEN`/`GH_ENTERPRISE_TOKEN` is already set and
+4. If a non-empty `GH_TOKEN`/`GH_ENTERPRISE_TOKEN` is already set and
    `GH_APP_FORCE=1` is not set, respect the explicit token and execute unchanged.
 5. Otherwise read or mint a token and set:
    - `GH_TOKEN` for `github.com` and `*.ghe.com`

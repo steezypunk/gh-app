@@ -42,7 +42,9 @@ pub fn run(args: Vec<String>) -> Result<i32> {
     };
     let host = HostInfo::new(&hostname)?.with_api_url(host_config.api_url.as_deref())?;
 
-    if std::env::var_os(host.token_env).is_some() && !truthy("GH_APP_FORCE") {
+    if std::env::var_os(host.token_env).is_some_and(|value| !value.is_empty())
+        && !truthy("GH_APP_FORCE")
+    {
         return exec(real_gh, args, None);
     }
 
