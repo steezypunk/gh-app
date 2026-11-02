@@ -51,6 +51,8 @@ Acceptance:
 
 - Real gh shim test with `GH_TOKEN` and `exec`.
 - Static Rust exec shim test against real gh.
+- Symlink multi-call dispatch test for `gh`, `gh-app`, and
+  `git-credential-gh-app`.
 - GH_TOKEN, GITHUB_TOKEN, GH_ENTERPRISE_TOKEN, GH_HOST precedence tests.
 - Real git credential fill with the real gh helper.
 - Absolute versus relative helper path test.
@@ -62,6 +64,8 @@ Acceptance:
   parent rejected on x86_64 and aarch64.
 - Token cache concurrency: eight processes, all updates retained, cache and lock
   files mode 0600.
+- Optional keyring feature compiles static; headless runtime reports no default
+  store.
 - RS256 JWT verified for 2048/4096 PKCS#1, 2048 PKCS#8, and 1024 rejection.
 - Mock installation-token endpoint test with ureq.
 - Real GitHub token endpoint error shape with a fake app.

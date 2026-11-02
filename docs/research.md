@@ -201,6 +201,10 @@ The full evidence is in `docs/validation.md`. The most important results:
 - A static token-cache prototype ran eight concurrent processes without lost
   updates and produced 0600 cache and lock files. Standard `File::lock` replaced
   the planned `fs4` dependency.
+- A static 417 KiB multi-call prototype dispatched correctly through symlinks
+  named `gh`, `gh-app`, and `git-credential-gh-app`.
+- The optional `keyring` 4.2 feature compiled static (4.6 MiB) but reported no
+  default store on the headless host, confirming file fallback is required.
 
 ## 12. Sources
 

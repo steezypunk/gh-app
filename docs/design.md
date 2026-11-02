@@ -241,6 +241,9 @@ After installation, `hash -r` may be needed in the current shell.
 | `git-credential-gh-app` | git credential helper |
 | anything else | management CLI |
 
+This dispatch was validated with a static 417 KiB Rust prototype and real
+symlinks for `gh`, `gh-app`, and `git-credential-gh-app`.
+
 The real gh is discovered by:
 
 1. `GH_APP_REAL_GH`, if set.
@@ -448,6 +451,11 @@ secret store:
 Headless Linux usually has no Secret Service, so file storage remains the
 fallback. If the keyring is unavailable, `--keyring` fails with a clear message
 instead of silently falling back to a file.
+
+The `keyring` 4.2 dependency compiled into a static x86_64 musl binary (4.6 MiB
+total). On a headless host, `Entry::new` returned `NoDefaultStore`, as expected.
+The binary size and runtime behavior confirm that keyring support should remain
+optional and that file storage must be the default.
 
 For CI and ephemeral environments: `GH_APP_PRIVATE_KEY` or `--private-key -`
 keeps the key out of the config directory and out of argv. The key still exists

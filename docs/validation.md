@@ -62,6 +62,23 @@ as a static-pie x86_64 musl binary (409 KiB) and run against the real gh:
 This validates the actual planned Rust exec path, not only a shell
 approximation.
 
+## 1.3 Symlink multi-call dispatch
+
+A static 417 KiB Rust prototype dispatched on `argv[0]` basename. Three symlinks
+were created in a temporary directory: `gh`, `gh-app`, and
+`git-credential-gh-app`.
+
+Actual results:
+
+- `gh auth token` returned `fake_multicall_token`, exit 0.
+- `gh --version` printed real gh 2.102.0, exit 0.
+- `gh nope` returned exit 1.
+- `gh-app auth status` entered management mode with the expected arguments.
+- `git-credential-gh-app get` returned `x-access-token` and the fake token.
+
+This validates the symlink plus basename dispatch model for all three planned
+binary names.
+
 ## 2. Real git with the real gh credential helper
 
 With an isolated temporary HOME and global git config:
@@ -364,6 +381,21 @@ the endpoint path, TLS, Bearer transport, API version header, and GitHub's error
 shape, but it does not prove that a real app's JWT is accepted. That check needs
 a real app ID and private key and remains blocked.
 
+## 9.6 Optional keyring feature
+
+The `keyring` 4.2 crate with its default `v1` feature compiled as a static
+x86_64 musl binary, 4.6 MiB. On this headless host, `Entry::new` returned:
+
+```text
+entry-error: No default store has been set, so cannot search or create entries
+```
+
+This confirms two things:
+
+- The optional keyring dependency does not break the static musl build.
+- Linux keyring storage needs a working Secret Service. If it is unavailable,
+  `--keyring` must fail clearly and file storage remains the fallback.
+
 ## 10. Constraints and blocked checks
 
 These acceptance paths were not executed:
@@ -404,6 +436,7 @@ runtime environment.
 |---|---|---|
 | Shadow gh with app token | real gh shim test | verified |
 | Rust exec shim | static x86_64 shim against real gh | verified |
+| Symlink multi-call dispatch | static 417 KiB prototype, three symlinks | verified |
 | Preserve gh exit codes | unknown command and version tests | verified |
 | Git uses gh helper with env token | real git fill test | verified |
 | Absolute helper path needed | marker test both ways | verified |
@@ -425,5 +458,6 @@ runtime environment.
 | Static mint probe | x86_64 and aarch64 ran against mock | verified |
 | Key permission checks | x86_64 and aarch64 static prototype | verified |
 | Token cache locking | eight-process static prototype | verified |
+| Optional keyring feature | static build succeeds, headless store unavailable | verified |
 | Key storage and permission model | design only | not implemented |
 | gh-app auth login UX | design only | not implemented |
