@@ -16,6 +16,8 @@ fn isolated(dir: &Path) -> Command {
     let mut cmd = command();
     cmd.env("GH_APP_CONFIG_DIR", dir)
         .env("GH_APP_CACHE_DIR", dir.join("cache"))
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", dir.join(".gitconfig"))
         .env_remove("XDG_CONFIG_HOME")
         .env_remove("GH_APP_PRIVATE_KEY")
         .env_remove("GH_APP_PRIVATE_KEY_PATH")
@@ -471,6 +473,137 @@ fn setup_git_writes_helper() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("git-credential"));
     assert!(stdout.contains('!'));
+}
+
+#[test]
+fn logout_removes_git_helper_unless_kept() {
+    let dir = tempfile::tempdir().unwrap();
+    write_config(dir.path());
+    let gitconfig = dir.path().join(".gitconfig");
+    command()
+        .env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .args(["auth", "setup-git", "--hostname", "github.com"])
+        .assert()
+        .success();
+
+    isolated(dir.path())
+        .args(["auth", "logout", "--hostname", "github.com", "--yes"])
+        .assert()
+        .success();
+    let output = std::process::Command::new("git")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .args([
+            "config",
+            "--global",
+            "--get-all",
+            "credential.https://github.com.helper",
+        ])
+        .output()
+        .unwrap();
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("git-credential"));
+
+    write_config(dir.path());
+    command()
+        .env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .args(["auth", "setup-git", "--hostname", "github.com"])
+        .assert()
+        .success();
+    isolated(dir.path())
+        .args([
+            "auth",
+            "logout",
+            "--hostname",
+            "github.com",
+            "--yes",
+            "--keep-git-config",
+        ])
+        .assert()
+        .success();
+    let output = std::process::Command::new("git")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .args([
+            "config",
+            "--global",
+            "--get-all",
+            "credential.https://github.com.helper",
+        ])
+        .output()
+        .unwrap();
+    assert!(String::from_utf8_lossy(&output.stdout).contains("git-credential"));
+}
+
+#[cfg(unix)]
+#[test]
+fn gh_auth_login_and_logout_redirect() {
+    use std::os::unix::fs::symlink;
+
+    let dir = tempfile::tempdir().unwrap();
+    let marker = dir.path().join("real-gh-ran");
+    let fake_gh = dir.path().join("fake-gh");
+    fs::write(
+        &fake_gh,
+        format!("#!/bin/sh\ntouch '{}'\nexit 99\n", marker.display()),
+    )
+    .unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&fake_gh, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let source = dir.path().join("source-key.pem");
+    write_test_key(&source);
+    let link = dir.path().join("gh");
+    symlink(assert_cmd::cargo::cargo_bin("gh-app"), &link).unwrap();
+    let gitconfig = dir.path().join(".gitconfig");
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .env_remove("GH_TOKEN")
+        .env_remove("XDG_CONFIG_HOME")
+        .args([
+            "auth",
+            "login",
+            "--hostname",
+            "github.com",
+            "--app-id",
+            "123",
+            "--installation-id",
+            "456",
+            "--private-key",
+            source.to_str().unwrap(),
+            "--no-verify",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Configured github.com"));
+    assert!(!marker.exists());
+
+    let mut cmd = Command::new(&link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env("GH_APP_REAL_GH", &fake_gh)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", &gitconfig)
+        .env_remove("GH_TOKEN")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["auth", "logout", "--hostname", "github.com", "--yes"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Removed github.com"));
+    assert!(!marker.exists());
+    let config = fs::read_to_string(dir.path().join("config.toml")).unwrap();
+    assert!(!config.contains("[hosts.\"github.com\"]"));
 }
 
 #[cfg(unix)]

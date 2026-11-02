@@ -517,6 +517,8 @@ runtime environment.
 | Final-binary custom CA | custom root accepted, default roots reject | verified |
 | Final-binary retry policy | 429, 500, and 401 clock skew retried once | verified |
 | Final-binary refresh skew | near-expiry cached token reminted | verified |
+| gh auth login/logout redirect | internal commands ran, real gh skipped | verified |
+| Logout git helper cleanup | removed by default, kept with flag | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -564,7 +566,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 42 unit tests and 20 CLI integration tests pass.
+- `cargo test`: 42 unit tests and 22 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - An explicit non-empty `GH_TOKEN` is preserved unchanged; an empty `GH_TOKEN`
@@ -629,6 +631,9 @@ Additional checks were run with the actual built binary:
   --no-verify`, `auth list`, and `doctor --offline` passed for the extracted
   x86_64 artifact and for the extracted aarch64 artifact under qemu-aarch64,
   each with an isolated config, cache, and HOME.
+- Final binaries removed both host helper values on `auth logout --yes` and
+  preserved both with `--keep-git-config`. This passed for x86_64 directly and
+  for aarch64 under qemu, with an isolated git config.
 - A scratch container containing only the x86_64 artifact ran `version`, then
   `auth list` and `doctor --offline` against a baked isolated config. The
   aarch64 image built but could not execute because the container host has no
@@ -680,6 +685,11 @@ and the final musl artifacts:
   case the server `Date` was two hours ahead, and the retried JWT `iat` shifted
   to match that clock. A token expiring inside the 300-second skew was reminted
   on the second `auth token` call.
+- `gh auth login` and `gh auth logout` through the shim ran the internal
+  commands and never executed the fake real gh. Login wrote the host config,
+  logout removed it, and logout removed the host git helper entries by default
+  while `--keep-git-config` preserved them.
 - Permanent regressions added for unknown host, HTTP blocking, 0644 config, and
   0644 key handling, plus `GH_APP_FORCE`, `GITHUB_TOKEN`, and GHES enterprise
-  token precedence.
+  token precedence, logout helper cleanup, and `gh auth login`/`logout`
+  redirection.

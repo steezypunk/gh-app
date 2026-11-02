@@ -468,12 +468,14 @@ fn logout(args: LogoutArgs) -> Result<i32> {
                 keyring_store::delete(value)?;
             }
         }
+        if !args.keep_git_config {
+            remove_git_helper(hostname);
+        }
         config.hosts.remove(hostname);
     }
     if args.all {
         token::delete_all()?;
     }
-    let _ = args.keep_git_config;
     save(&config_path, &config)?;
     println!("Removed {}", hosts.join(", "));
     Ok(0)
@@ -751,6 +753,13 @@ pub(crate) fn setup_git(args: SetupGitArgs) -> Result<i32> {
         println!("Configured git credential helper for {hostname}");
     }
     Ok(0)
+}
+
+fn remove_git_helper(hostname: &str) {
+    let key = format!("credential.https://{hostname}.helper");
+    let _ = std::process::Command::new("git")
+        .args(["config", "--global", "--unset-all", &key])
+        .output();
 }
 
 fn run_git(args: &[&str]) -> Result<()> {
