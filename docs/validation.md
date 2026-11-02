@@ -602,6 +602,10 @@ Additional checks were run with the actual built binary:
   explicitly with `GH_APP_ALLOW_HTTP=1`. Git sent `host=localhost:PORT`; the
   helper matched the configured `localhost` after stripping the port, minted
   once, and git retried with the expected Basic authorization.
+- Git does not apply the host-only `credential.https://host.helper` key to a
+  `https://host:port` URL. Custom-port GHES users must add a port-specific
+  helper entry manually; the helper itself handles the port. This caveat is in
+  the README troubleshooting section.
 - Interactive login through a PTY: host default, app ID, key path, and a
   two-installation selection menu. The selected installation 456 was written to
   config and the managed key was created.

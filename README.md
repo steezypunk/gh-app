@@ -142,6 +142,10 @@ defaults are under `%APPDATA%` and `%LOCALAPPDATA%`.
 - API 403: check the app installation permissions and repository selection.
 - API 404 on an installation: verify the installation ID belongs to the app.
 - GHES TLS errors: pass `--cacert` or set `GH_APP_CA_BUNDLE`.
+- GHES on a non-default port: `auth setup-git` writes a host-only credential
+  key, and git does not apply it to `https://host:port`. Add a port-specific
+  `credential.https://host:port.helper` entry manually using the same
+  `!<absolute-gh-app> git-credential` command.
 - `gh repo clone` uses SSH: run `gh config set git_protocol https`, or clone
   with an HTTPS URL.
 - Long-running command fails after an hour: installation tokens expire after

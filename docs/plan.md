@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: core product, interactive UX, and docs implemented; release publishing remains
+Status: core product, interactive UX, and docs implemented; clean-container smoke test and release publishing remain
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Current progress
@@ -269,15 +269,17 @@ troubleshooting, bot limitations, and SECURITY.md are present.
 
 - Release profile: LTO, strip, panic abort, codegen units 1.
 - Cross build both musl targets.
-- Smoke test artifacts in a clean container.
-- Generate SHA256SUMS.
+- Smoke test artifacts in a clean container (local extraction and runs are
+  verified; no container was run).
+- Generate per-target SHA256 files.
 - Add shell completions (optional, not implemented).
 - Tag and publish.
 
 CI and release workflows for both musl targets are in place. Local static
 x86_64 (5.8 MiB) and aarch64 (4.8 MiB) builds run, and `scripts/package.sh`
-produced checksum-verified tarballs for both. GitHub-hosted publication was not
-executed because this environment has no release remote or token.
+produced portable, checksum-verified tarballs for both. Both archives were
+extracted and exercised on their target architecture. GitHub-hosted publication
+was not executed because this environment has no release remote or token.
 
 Cross-build note: scratch-only Rust targets and musl GCC toolchains were
 installed under the scratch directory. The actual gh-app source was built for
