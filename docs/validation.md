@@ -503,7 +503,8 @@ runtime environment.
 | Strict mode | no-config strict failure test | verified |
 | No-cache mode | two token runs mint twice | verified |
 | Remote host parsing | https, ssh, and git@ forms | verified |
-| Real git HTTP with actual binary | 401 server received expected Basic auth | verified |
+| Real git HTTPS through setup-git | 401 server received expected Basic auth | verified |
+| Real git HTTP with host:port | helper matched and 401 retry succeeded | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -585,11 +586,17 @@ publication.
 
 Additional checks were run with the actual built binary:
 
-- Real git HTTP flow: `auth login` against a mock API, `auth setup-git`, then
-  `git ls-remote` against a local 401 server. Git sent
-  `Authorization: Basic base64(x-access-token:ghs_actual_helper_token)`, matching
-  the token minted during login. The helper was invoked with `host:port` and
-  matched the configured host after stripping the port.
+- Real git HTTPS flow: `auth setup-git --hostname localhost` wrote the blank
+  reset and the absolute `!<exe> git-credential` command. `git ls-remote`
+  reached a local TLS server that returned 401; the configured helper minted
+  `ghs_actual_helper_token` and git retried with
+  `Authorization: Basic base64(x-access-token:ghs_actual_helper_token)`. The
+  server was reached through a local CONNECT proxy so the URL stayed
+  `https://localhost`, matching the helper config that setup-git writes.
+- Real git HTTP flow with `host:port`: the same helper command was supplied
+  explicitly with `GH_APP_ALLOW_HTTP=1`. Git sent `host=localhost:PORT`; the
+  helper matched the configured `localhost` after stripping the port, minted
+  once, and git retried with the expected Basic authorization.
 - Interactive login through a PTY: host default, app ID, key path, and a
   two-installation selection menu. The selected installation 456 was written to
   config and the managed key was created.
