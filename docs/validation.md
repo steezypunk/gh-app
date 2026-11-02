@@ -511,6 +511,8 @@ runtime environment.
 | Live GitHub API error path | GET /app and token POST returned 401 | verified |
 | Final-binary concurrency | eight processes minted once | verified |
 | Static dependency closure | no NEEDED entries or interpreter | verified |
+| Release-binary JWT signature | x86_64 and aarch64 verified by OpenSSL | verified |
+| Final-binary env precedence | GH_TOKEN, GITHUB_TOKEN, enterprise, force | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -558,7 +560,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 42 unit tests and 19 CLI integration tests pass.
+- `cargo test`: 42 unit tests and 20 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - An explicit non-empty `GH_TOKEN` is preserved unchanged; an empty `GH_TOKEN`
@@ -654,5 +656,16 @@ and the final musl artifacts:
 - Static linkage: the x86_64 artifact is static-pie with zero `NEEDED` entries
   and `ldd` reports statically linked. The aarch64 artifact has no dynamic
   section, no interpreter, and `ldd` reports not a dynamic executable.
+- Release-binary JWT signing: both final binaries minted against a mock endpoint
+  that captured the Bearer header. Their JWTs had `alg=RS256`, `typ=JWT`,
+  `iss=123`, `iat` about 60 seconds in the past, and `exp-iat=600`. Both
+  signatures verified with `openssl dgst -sha256 -verify`; the aarch64 binary
+  ran under qemu-aarch64.
+- Environment precedence with the final shim: explicit non-empty `GH_TOKEN` is
+  preserved, empty `GH_TOKEN` falls back to the app token, `GH_APP_FORCE=1`
+  overrides an explicit `GH_TOKEN`, `GITHUB_TOKEN` does not block the app token,
+  and explicit `GH_ENTERPRISE_TOKEN` is preserved for a GHES host while its
+  absence injects the app token.
 - Permanent regressions added for unknown host, HTTP blocking, 0644 config, and
-  0644 key handling.
+  0644 key handling, plus `GH_APP_FORCE`, `GITHUB_TOKEN`, and GHES enterprise
+  token precedence.
