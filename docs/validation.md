@@ -507,6 +507,10 @@ runtime environment.
 | Real git HTTP with host:port | helper matched and 401 retry succeeded | verified |
 | Final archive extraction | both binaries run, auth login/list/doctor pass | verified |
 | Clean-container x86_64 smoke | scratch image ran version/list/doctor | verified |
+| Real gh 2.102 through shim | version/help/exit/token injection pass | verified |
+| Live GitHub API error path | GET /app and token POST returned 401 | verified |
+| Final-binary concurrency | eight processes minted once | verified |
+| Static dependency closure | no NEEDED entries or interpreter | verified |
 | Interactive login PTY | prompts and installation selection | verified |
 | Keyring headless failure | clear error, no partial config | verified |
 | Aarch64 auth flow | login and list under qemu | verified |
@@ -554,7 +558,7 @@ git helper/config cleanup were not yet covered. Later sections cover them.
 
 ## 15. M4/M4.5 and final packaging validation
 
-- `cargo test`: 42 unit tests and 15 CLI integration tests pass.
+- `cargo test`: 42 unit tests and 19 CLI integration tests pass.
 - A fake real gh receives `GH_TOKEN=ghs_test_token` from the shim, proving token
   injection and exec behavior.
 - An explicit non-empty `GH_TOKEN` is preserved unchanged; an empty `GH_TOKEN`
@@ -624,3 +628,31 @@ Additional checks were run with the actual built binary:
   aarch64 image built but could not execute because the container host has no
   arm64 binfmt emulation; the same artifact passed under host qemu-aarch64.
 - The final static sizes are 5.8 MiB (x86_64) and 4.8 MiB (aarch64).
+
+## 17. Deeper final-binary validation
+
+The following checks used the shipped x86_64 binary, gh 2.102.0, git 2.47.3,
+and the final musl artifacts:
+
+- Real gh through the shim: `gh auth token` received and printed the mock
+  installation token, a second call reused the cache with one total mint,
+  `gh --version` and `gh help` passed through without minting, and an unknown
+  real-gh command preserved exit code 1.
+- Real git credential protocol: `git credential fill` returned
+  `x-access-token` and the minted password from the helper; an unknown host
+  produced no credentials; plain HTTP produced no credentials unless
+  `GH_APP_ALLOW_HTTP=1`; `git credential approve` and `reject` were no-op
+  successes.
+- Permission boundaries with the final binary: a 0644 key, symlinked key, and
+  0644 config were each rejected with clear errors and no token output.
+- Cache single-flight: eight concurrent `auth token` processes all succeeded
+  with the same token and one mock mint. The cache file was mode 0600.
+- Live GitHub TLS: normal `auth login` against `api.github.com` with a fake app
+  returned HTTP 401 `A JSON web token could not be decoded` and left no partial
+  config. A no-verify login followed by `auth token` reached the real
+  installation-token endpoint and also returned that 401.
+- Static linkage: the x86_64 artifact is static-pie with zero `NEEDED` entries
+  and `ldd` reports statically linked. The aarch64 artifact has no dynamic
+  section, no interpreter, and `ldd` reports not a dynamic executable.
+- Permanent regressions added for unknown host, HTTP blocking, 0644 config, and
+  0644 key handling.

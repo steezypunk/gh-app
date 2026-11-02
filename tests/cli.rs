@@ -680,3 +680,81 @@ fn credential_helper_without_config_is_noop() {
         .success()
         .stdout(predicate::str::is_empty());
 }
+
+#[cfg(unix)]
+#[test]
+fn credential_helper_unknown_host_is_noop() {
+    use std::os::unix::fs::symlink;
+
+    let dir = tempfile::tempdir().unwrap();
+    write_config(dir.path());
+    let link = dir.path().join("git-credential-gh-app");
+    symlink(assert_cmd::cargo::cargo_bin("gh-app"), &link).unwrap();
+    let mut cmd = Command::new(link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["get"])
+        .write_stdin("protocol=https\nhost=example.com\n\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn credential_helper_blocks_plain_http_by_default() {
+    use std::os::unix::fs::symlink;
+
+    let dir = tempfile::tempdir().unwrap();
+    write_config(dir.path());
+    let link = dir.path().join("git-credential-gh-app");
+    symlink(assert_cmd::cargo::cargo_bin("gh-app"), &link).unwrap();
+    let mut cmd = Command::new(link);
+    cmd.env("GH_APP_CONFIG_DIR", dir.path())
+        .env("GH_APP_CACHE_DIR", dir.path().join("cache"))
+        .env_remove("GH_APP_ALLOW_HTTP")
+        .env_remove("XDG_CONFIG_HOME")
+        .args(["get"])
+        .write_stdin("protocol=http\nhost=github.com\n\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn auth_list_rejects_insecure_config() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    write_config(dir.path());
+    fs::set_permissions(
+        dir.path().join("config.toml"),
+        fs::Permissions::from_mode(0o644),
+    )
+    .unwrap();
+    isolated(dir.path())
+        .args(["auth", "list"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("group/other permissions"));
+}
+
+#[cfg(unix)]
+#[test]
+fn auth_token_rejects_insecure_key() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    write_config(dir.path());
+    fs::create_dir_all(dir.path().join("keys")).unwrap();
+    let key = dir.path().join("keys/github.com-123.pem");
+    write_test_key(&key);
+    fs::set_permissions(&key, fs::Permissions::from_mode(0o644)).unwrap();
+    isolated(dir.path())
+        .args(["auth", "token", "--hostname", "github.com"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("group/other permissions"));
+}
