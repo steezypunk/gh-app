@@ -51,12 +51,42 @@ Implemented:
 - `git-credential-gh-app` helper with authtype and legacy output
 - `gh-app setup` shim installation and git configuration
 - `gh-app doctor` basic config and key checks
+- `installation.sh` installer with checksum verification, `gh` bootstrap, and
+  upgrade detection
 
 Release `v0.1.1` is published with static x86_64 and aarch64 musl archives and
 SHA256 files:
 <https://github.com/steezypunk/gh-app/releases/tag/v0.1.1>.
 
 ## Install
+
+The installer handles first install and updates on Linux. For non-root users it
+installs both binaries to `~/.local/bin`. As root it uses `/usr/local/bin`.
+It installs the GitHub CLI (`gh`) only when `gh` is missing, and it does not
+install a `gh` shim.
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/steezypunk/gh-app/main/installation.sh
+bash installation.sh
+```
+
+On each run the script checks the installed `gh-app` version and replaces it
+only when a newer release exists. Downloads are verified against the published
+SHA-256 checksums before installation.
+
+| Option | Meaning |
+| --- | --- |
+| `--dir DIR` | Install to a custom directory |
+| `--version v0.1.1` | Install a specific release |
+| `--no-gh` | Do not install `gh` even if it is missing |
+| `--force` | Reinstall even when already up to date |
+| `--dry-run` | Show actions without changing anything |
+
+Run `gh-app` for GitHub CLI commands. If `~/.local/bin` is not on `PATH`, the
+script prints the `export` line to add. The `gh` shim is optional. Run
+`gh-app setup` only if you want plain `gh` to use the app token.
+
+### Manual install
 
 Requires Linux, `git`, and the GitHub CLI (`gh`). The release archives contain
 a single statically linked musl binary, so no Rust toolchain is needed.
@@ -126,23 +156,32 @@ gh-app auth login \
   --private-key ~/Downloads/my-app.private-key.pem
 ```
 
-4. Install the shim and configure git:
+4. Configure git to use the app token:
 
 ```sh
-gh-app setup
+gh-app auth setup-git
 gh-app doctor
 ```
 
-5. Verify:
+5. Optional: install the `gh` shim if you want plain `gh` to use the app
+   token. Using `gh-app` directly is the recommended path.
 
 ```sh
-gh auth token
+gh-app setup
+```
+
+6. Verify:
+
+```sh
+gh-app auth token
 printf 'protocol=https\nhost=github.com\n\n' | git credential fill
 ```
 
-## Use gh-app in place of gh
+## Use gh-app instead of gh
 
-Normal gh commands can be run through `gh-app` directly:
+Using `gh-app` explicitly is the recommended way to run GitHub CLI commands,
+because it always injects the installation token and never depends on `PATH`
+ordering or a shim.
 
 ```sh
 gh-app pr list
@@ -153,8 +192,8 @@ gh-app api repos/owner/repo
 
 `gh-app auth`, `gh-app setup`, `gh-app doctor`, and `gh-app version` are
 implemented by gh-app. Every other first argument is passed to the real gh with
-the installation token injected. The `gh` shim is optional if you prefer to type
-`gh-app` explicitly.
+the installation token injected. The installer does not create a `gh` shim.
+Run `gh-app setup` only if you want plain `gh` to use the app token.
 
 ## Storage
 
