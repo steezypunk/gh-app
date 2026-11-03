@@ -7,6 +7,23 @@ The implementation is complete for Linux. It shadows `gh` through a symlink,
 injects a cached GitHub App installation token, and configures git to use the
 same token through a credential helper.
 
+[![ci](https://github.com/steezypunk/gh-app/actions/workflows/ci.yml/badge.svg)](https://github.com/steezypunk/gh-app/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/steezypunk/gh-app)](https://github.com/steezypunk/gh-app/releases)
+[![license](https://img.shields.io/github/license/steezypunk/gh-app)](LICENSE)
+
+## Why gh-app
+
+Personal access tokens are tied to a person, carry broad scopes, and keep
+working until revoked. GitHub App installation tokens are narrower: they are
+limited to the repositories and permissions granted to one installation, and
+they expire after an hour.
+
+`gh-app` handles that lifecycle for you. It signs a JWT with the app private
+key, mints and caches installation tokens, injects them into `gh`, and serves
+the same token to `git` through a credential helper. Existing `gh` and `git`
+workflows keep working, but requests run as the app installation instead of a
+human account.
+
 ## Documentation
 
 - [Design](docs/design.md)
@@ -38,6 +55,28 @@ Implemented:
 Release `v0.1.1` is published with static x86_64 and aarch64 musl archives and
 SHA256 files:
 <https://github.com/steezypunk/gh-app/releases/tag/v0.1.1>.
+
+## Install
+
+Requires Linux, `git`, and the GitHub CLI (`gh`). The release archives contain
+a single statically linked musl binary, so no Rust toolchain is needed.
+
+```sh
+VERSION=v0.1.1
+ARCH=amd64   # use arm64 on aarch64
+BASE="https://github.com/steezypunk/gh-app/releases/download/${VERSION}"
+
+curl -fsSLO "${BASE}/gh-app-${VERSION}-linux-${ARCH}.tar.gz"
+curl -fsSLO "${BASE}/gh-app-${VERSION}-linux-${ARCH}.tar.gz.sha256"
+sha256sum -c "gh-app-${VERSION}-linux-${ARCH}.tar.gz.sha256"
+tar -xzf "gh-app-${VERSION}-linux-${ARCH}.tar.gz"
+install -m 0755 gh-app ~/.local/bin/gh-app
+
+gh-app version
+```
+
+Make sure `~/.local/bin` is on `PATH`. To build from source instead, see
+[Build](#build).
 
 ## Build
 
@@ -183,6 +222,16 @@ resolve to the bot.
 
 See [SECURITY.md](SECURITY.md) for the threat model, key and cache controls,
 rotation, and residual risks.
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a PR, run:
+
+```sh
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test --all-targets
+```
 
 ## License
 
