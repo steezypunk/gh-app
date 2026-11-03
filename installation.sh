@@ -286,6 +286,10 @@ if [ "$INSTALL_GH" -eq 1 ]; then
     install_gh
   fi
 else
+  if ! command -v gh >/dev/null 2>&1; then
+    warn "gh is not installed; gh-app passthrough needs it."
+    warn "Omit --no-gh or install gh from https://github.com/cli/cli"
+  fi
   log "skipping GitHub CLI installation (--no-gh)"
 fi
 
