@@ -498,7 +498,7 @@ runtime environment.
 | git credential helper | legacy and authtype integration tests | verified |
 | auth setup-git | temp git config test | verified |
 | setup shim install | temp PATH and symlink test | verified |
-| Release workflows | CI and release runs succeeded for v0.1.0 | verified |
+| Release workflows | CI and release runs succeeded for v0.1.0 and v0.1.1 | verified |
 | 429 retry | local mock returns 429 then 201 | verified |
 | Strict mode | no-config strict failure test | verified |
 | No-cache mode | two token runs mint twice | verified |
@@ -700,7 +700,9 @@ and the final musl artifacts:
   token precedence, logout helper cleanup, and `gh auth` login, logout, refresh,
   setup-git, and switch redirection.
 
-## 18. v0.1.0 release publication
+## 18. Release publication
+
+### v0.1.0
 
 - `main` was pushed from `8ecd21b` to `d80b91f`.
 - Tag `v0.1.0` was created and pushed, triggering CI and the release workflow.
@@ -712,3 +714,18 @@ and the final musl artifacts:
 - All four release assets were downloaded. Both checksums verified, and the
   extracted x86_64 binary ran directly while the aarch64 binary ran under
   qemu-aarch64. Both reported `gh-app 0.1.0`.
+
+### v0.1.1
+
+- `main` was pushed to `392bcc5` with the `gh-app` command passthrough and
+  portable archive naming.
+- Tag `v0.1.1` was created and pushed, triggering CI and the release workflow.
+- The `ci` and `release` runs for `v0.1.1` completed successfully.
+- The published release is
+  <https://github.com/steezypunk/gh-app/releases/tag/v0.1.1>, with
+  `gh-app-v0.1.1-linux-amd64.tar.gz` and
+  `gh-app-v0.1.1-linux-arm64.tar.gz` plus SHA256 files.
+- All four assets were downloaded and both checksums verified. Both extracted
+  binaries reported `gh-app 0.1.1`.
+- The downloaded x86_64 binary ran `gh-app pr list` through a fake real gh and
+  preserved the arguments and injected token.
