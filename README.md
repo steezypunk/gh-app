@@ -66,9 +66,19 @@ It installs the GitHub CLI (`gh`) only when `gh` is missing, and it does not
 install a `gh` shim.
 
 ```sh
-curl -fsSLO https://raw.githubusercontent.com/steezypunk/gh-app/main/installation.sh
-bash installation.sh
+curl -fsSL https://raw.githubusercontent.com/steezypunk/gh-app/main/installation.sh | bash
 ```
+
+Pass installer options after `bash -s --`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/steezypunk/gh-app/main/installation.sh | bash -s -- --dry-run
+curl -fsSL https://raw.githubusercontent.com/steezypunk/gh-app/main/installation.sh | bash -s -- --dir "$HOME/bin"
+curl -fsSL https://raw.githubusercontent.com/steezypunk/gh-app/main/installation.sh | sudo bash
+```
+
+To review the script before running it, download the same URL and run
+`bash installation.sh`.
 
 On each run the script checks the installed `gh-app` version and replaces it
 only when a newer release exists. Downloads are verified against the published
@@ -176,6 +186,104 @@ gh-app setup
 gh-app auth token
 printf 'protocol=https\nhost=github.com\n\n' | git credential fill
 ```
+
+## Setup examples
+
+### Non-interactive login
+
+Use this for a server, CI runner, or bot. The private key is copied to
+`~/.config/gh-app/keys/<hostname>-<app_id>.pem` with mode 0600.
+
+```sh
+gh-app auth login \
+  --hostname github.com \
+  --app-id 123456 \
+  --installation-id 987654 \
+  --private-key ~/Downloads/my-app.private-key.pem
+```
+
+The same values can come from the environment:
+
+```sh
+export GH_APP_APP_ID=123456
+export GH_APP_INSTALLATION_ID=987654
+export GH_APP_PRIVATE_KEY_PATH=~/Downloads/my-app.private-key.pem
+
+gh-app auth login
+```
+
+Add `--keyring` to store the key in the OS keyring instead of the config
+directory, or `--reference-key` to leave the key in place.
+
+### Interactive login
+
+```sh
+gh-app auth login
+```
+
+The command prompts for the hostname, app ID, installation ID, and key path.
+
+### Configure git
+
+```sh
+gh-app auth setup-git
+```
+
+Verify the helper:
+
+```sh
+git config --global --get-all credential.https://github.com.helper
+```
+
+Expected output is similar to:
+
+```text
+!'/home/you/.local/bin/gh-app' git-credential
+```
+
+### Verify credentials
+
+```sh
+gh-app auth list
+gh-app auth status
+gh-app doctor
+gh-app auth token | wc -c
+printf 'protocol=https\nhost=github.com\n\n' | git credential fill
+```
+
+### Run GitHub CLI commands
+
+```sh
+gh-app pr list
+gh-app pr create --title "Add feature" --body "Details"
+gh-app pr comment 123 --body "Looks good"
+gh-app pr merge 123 --squash --delete-branch
+gh-app issue create --title "Bug" --body "Steps to reproduce"
+gh-app api repos/owner/repo
+```
+
+### Clone and push with git
+
+```sh
+git clone https://github.com/owner/repo.git
+cd repo
+git checkout -b feature
+git commit -am "Add feature"
+git push -u origin feature
+```
+
+HTTPS git operations use the credential helper configured above. SSH is not
+used by the app installation.
+
+### Optional gh shim
+
+```sh
+gh-app setup
+gh pr list
+```
+
+Calling `gh-app` directly is recommended. The shim only changes what plain
+`gh` resolves to.
 
 ## Use gh-app instead of gh
 
