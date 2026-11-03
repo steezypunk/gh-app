@@ -328,8 +328,8 @@ Use gh-app for GitHub CLI commands:
   gh-app issue list
   gh-app api repos/steezypunk/gh-app
 
-No gh shim was installed and plain gh was not redirected.
-Use gh-app explicitly. If you want plain gh to use the app token, run:
+This installer did not install or change a gh shim. Use gh-app explicitly.
+If you want plain gh to use the app token, run:
   gh-app setup
 
 For credentials, see the Quick start section in README.md.
