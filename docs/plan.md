@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: core product, interactive UX, docs, and v0.1.0 release complete; arm64 container emulation remains unvalidated
+Status: core product, interactive UX, docs, and v0.1.1 release complete; arm64 container emulation remains unvalidated
 Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
 
 ## Current progress
@@ -19,7 +19,7 @@ Companion docs: `docs/design.md`, `docs/research.md`, `docs/validation.md`
   inference.
 - M4.5 git credential helper and `auth setup-git`: complete.
 - M4.6 install, security, troubleshooting, and bot-limit docs: complete.
-- Release workflows ran successfully and `v0.1.0` is published with static
+- Release workflows ran successfully and `v0.1.1` is published with static
   x86_64 and aarch64 archives plus SHA256 files.
 
 ## Goal
@@ -265,7 +265,7 @@ Result:
 Result: README quick start, permissions, storage, environment variables,
 troubleshooting, bot limitations, and SECURITY.md are present.
 
-## M5: release (v0.1.0 published)
+## M5: release (v0.1.1 published)
 
 - Release profile: LTO, strip, panic abort, codegen units 1.
 - Cross build both musl targets.
@@ -276,11 +276,11 @@ troubleshooting, bot limitations, and SECURITY.md are present.
 - Tag and publish.
 
 CI and release workflows for both musl targets ran successfully for tag
-`v0.1.0`. Local static x86_64 (5.8 MiB) and aarch64 (4.8 MiB) builds run, and
+`v0.1.1`. Local static x86_64 (5.8 MiB) and aarch64 (4.8 MiB) builds run, and
 `scripts/package.sh` produced portable, checksum-verified tarballs for both.
 Both archives were extracted and exercised on their target architecture. The
 GitHub release was published at
-<https://github.com/steezypunk/gh-app/releases/tag/v0.1.0>, and its four assets
+<https://github.com/steezypunk/gh-app/releases/tag/v0.1.1>, and its four assets
 (two archives and two checksums) were downloaded and verified.
 
 Cross-build note: scratch-only Rust targets and musl GCC toolchains were

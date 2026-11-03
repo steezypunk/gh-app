@@ -35,9 +35,9 @@ Implemented:
 - `gh-app setup` shim installation and git configuration
 - `gh-app doctor` basic config and key checks
 
-Release `v0.1.0` is published with static x86_64 and aarch64 musl archives and
+Release `v0.1.1` is published with static x86_64 and aarch64 musl archives and
 SHA256 files:
-<https://github.com/steezypunk/gh-app/releases/tag/v0.1.0>.
+<https://github.com/steezypunk/gh-app/releases/tag/v0.1.1>.
 
 ## Build
 
@@ -58,7 +58,7 @@ cargo build --release --target aarch64-unknown-linux-musl
 Package a built static binary:
 
 ```sh
-./scripts/package.sh v0.1.0 x86_64-unknown-linux-musl
+./scripts/package.sh v0.1.1 x86_64-unknown-linux-musl
 ```
 
 Archives and SHA256 files are written to `dist/` using

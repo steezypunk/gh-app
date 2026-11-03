@@ -182,7 +182,10 @@ fn version_is_printed() {
         .arg("version")
         .assert()
         .success()
-        .stdout(predicate::str::contains("gh-app 0.1.0"));
+        .stdout(predicate::str::contains(format!(
+            "gh-app {}",
+            env!("CARGO_PKG_VERSION")
+        )));
 }
 
 #[test]
